@@ -245,6 +245,60 @@ class ExcelBuilder:
             
         self.obj.close()
         return
+
+    def generateWAFPillarsExcel(self, allCardSummaries):
+        """Generate a separate xlsx with one sheet per WAF pillar.
+        allCardSummaries: dict of {service: cardSummary}
+        """
+        WAF_PILLARS = {
+            'O': 'Operational Excellence',
+            'S': 'Security',
+            'R': 'Reliability',
+            'P': 'Performance Efficiency',
+            'C': 'Cost Optimization',
+            'T': 'General',
+        }
+
+        acctPath = Config.get('HTML_ACCOUNT_FOLDER_PATH')
+        filename = acctPath + '/waf-pillars.xlsx'
+        wb = xlsxwriter.Workbook(filename)
+        wb.set_properties({
+            'title': 'AWS Well-Architected Framework Findings',
+            'author': self.XLSX_CREATOR,
+            'created': datetime.now()
+        })
+
+        bold = wb.add_format({'bold': True})
+        header = ['Service', 'Region', 'Check', 'ResourceID', 'Severity', 'Status']
+
+        # Bucket findings by pillar
+        pillar_rows = {p: [] for p in WAF_PILLARS}
+
+        for service, cardSummary in allCardSummaries.items():
+            for check, detail in cardSummary.items():
+                pillar = detail.get('__categoryMain', 'T')
+                if pillar not in pillar_rows:
+                    pillar = 'T'
+                for region, resources in detail.get('__affectedResources', {}).items():
+                    for resource in resources:
+                        pillar_rows[pillar].append([
+                            service.upper(),
+                            region,
+                            check,
+                            resource,
+                            self._getCriticallyName(detail.get('criticality', 'I')),
+                            'New'
+                        ])
+
+        for code, name in WAF_PILLARS.items():
+            sh = wb.add_worksheet(name)
+            sh.write_row(0, 0, header, bold)
+            for r, row in enumerate(pillar_rows[code], start=1):
+                sh.write_row(r, 0, row)
+            sh.autofit()
+
+        wb.close()
+        return filename
     
     def _getPillarName(self, category):
         mapped = {

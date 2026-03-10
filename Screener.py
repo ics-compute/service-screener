@@ -242,6 +242,12 @@ class Screener:
         excelObj.buildSummaryPage(summary)
         excelObj._save()
 
+        # Generate WAF pillars xlsx
+        allCardSummaries = {svc: contexts[svc]['results'] for svc in contexts if 'results' in contexts[svc]}
+        # Rebuild card summaries from apiResultArray (already processed)
+        wafCardSummaries = {svc: data['summary'] for svc, data in apiResultArray.items()}
+        excelObj.generateWAFPillarsExcel(wafCardSummaries)
+
         ## Enhancement - Framework
         frameworks = Config.get('cli_frameworks')
         if len(frameworks) > 0:
