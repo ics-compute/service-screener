@@ -40,7 +40,7 @@ Running this tool is free as it is covered under the AWS Free Tier. If you have 
    source bin/activate
    python3 -m pip install --upgrade pip
    rm -rf service-screener-v2
-   git clone [https://github.com/aws-samples/service-screener-v2.git](https://github.com/ics-compute/service-screener.git)
+   git clone https://github.com/ics-compute/service-screener.git
    cd service-screener-v2
    pip install -r requirements.txt
    python3 unzip_botocore_lambda_runtime.py
