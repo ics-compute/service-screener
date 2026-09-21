@@ -1,0 +1,203 @@
+{
+	"configRecorderNotEnabled": {
+		"category": "S",
+		"^description": "{$COUNT} region(s) have no AWS Config configuration recorder that is actively recording (either no customer managed recorder exists, or one exists with recording stopped). Without a recorder, AWS Config captures no configuration items, so there is no configuration history, no point-in-time resource state to investigate an incident against, and every Config rule, conformance pack and Security Hub control that depends on Config data silently stops evaluating.",
+		"shortDesc": "Enable the AWS Config configuration recorder",
+		"criticality": "H",
+		"downtime": 0,
+		"slowness": 0,
+		"additionalCost": 1,
+		"needFullTest": 0,
+		"ref": [
+			"[Managing the configuration recorder]<https://docs.aws.amazon.com/config/latest/developerguide/stop-start-recorder.html>",
+			"[Setting up AWS Config]<https://docs.aws.amazon.com/config/latest/developerguide/setup-aws-config-with-console.html>"
+		],
+		"remediation": null,
+		"remediation_risk": null,
+		"remediation_doc": "https://docs.aws.amazon.com/config/latest/developerguide/stop-start-recorder.html"
+	},
+	"configRecorderNotAllResources": {
+		"category": "S",
+		"^description": "{$COUNT} region(s) have a configuration recorder that does not effectively cover the key resource types used for a security baseline (EC2 instances and security groups, VPCs, EBS volumes, IAM roles/policies/users, S3 buckets, KMS keys, RDS instances, CloudTrail trails, Lambda functions). This check computes effective coverage rather than reading allSupported alone: an inclusion-strategy recorder is judged on its resourceTypes list, and an exclusion-strategy recorder is judged on what it excludes. Resource types that are not recorded have no configuration history and cannot be evaluated by any Config rule.",
+		"shortDesc": "Record all supported resource types, or at least every key type",
+		"criticality": "M",
+		"downtime": 0,
+		"slowness": 0,
+		"additionalCost": 1,
+		"needFullTest": 0,
+		"ref": [
+			"[Selecting which resources Config records]<https://docs.aws.amazon.com/config/latest/developerguide/select-resources.html>",
+			"[Supported resource types]<https://docs.aws.amazon.com/config/latest/developerguide/resource-config-reference.html>"
+		],
+		"remediation": null,
+		"remediation_risk": null,
+		"remediation_doc": "https://docs.aws.amazon.com/config/latest/developerguide/select-resources.html"
+	},
+	"configDeliveryChannelMissing": {
+		"category": "OS",
+		"^description": "{$COUNT} region(s) have no AWS Config delivery channel. The delivery channel is what writes configuration snapshots and configuration history to an S3 bucket; without it the configuration recorder cannot be started at all, and there is no durable, exportable copy of the configuration history outside the AWS Config console for auditors or for long-term retention.",
+		"shortDesc": "Create an AWS Config delivery channel to an S3 bucket",
+		"criticality": "H",
+		"downtime": 0,
+		"slowness": 0,
+		"additionalCost": 1,
+		"needFullTest": 0,
+		"ref": [
+			"[Managing the delivery channel]<https://docs.aws.amazon.com/config/latest/developerguide/manage-delivery-channel.html>",
+			"[Setting up AWS Config]<https://docs.aws.amazon.com/config/latest/developerguide/setup-aws-config-with-console.html>"
+		],
+		"remediation": null,
+		"remediation_risk": null,
+		"remediation_doc": "https://docs.aws.amazon.com/config/latest/developerguide/manage-delivery-channel.html"
+	},
+	"configDeliveryChannelS3NotEncrypted": {
+		"category": "S",
+		"^description": "{$COUNT} region(s) have a delivery channel with no s3KmsKeyArn, so AWS Config does not SSE-KMS encrypt the configuration snapshots and history files it writes. Configuration history is a detailed inventory of the account (security group rules, IAM attachments, resource metadata) and is exactly the material an attacker would use for reconnaissance. Note that the destination bucket may still have default bucket encryption; setting s3KmsKeyArn is what puts the objects under a KMS key whose usage is auditable and whose access can be revoked independently of the bucket policy.",
+		"shortDesc": "Set a KMS key on the AWS Config delivery channel",
+		"criticality": "M",
+		"downtime": 0,
+		"slowness": 0,
+		"additionalCost": 1,
+		"needFullTest": 0,
+		"ref": [
+			"[Managing the delivery channel]<https://docs.aws.amazon.com/config/latest/developerguide/manage-delivery-channel.html>",
+			"[Security best practices for AWS Config]<https://docs.aws.amazon.com/config/latest/developerguide/security-best-practices-for-Config.html>"
+		],
+		"remediation": null,
+		"remediation_risk": null,
+		"remediation_doc": "https://docs.aws.amazon.com/config/latest/developerguide/manage-delivery-channel.html"
+	},
+	"configDeliveryChannelSNSMissing": {
+		"category": "O",
+		"^description": "{$COUNT} region(s) have a delivery channel with no snsTopicARN, so AWS Config emits no notification when a resource configuration changes, when a compliance evaluation changes state, or when delivery to S3 fails. Without a topic, compliance drift and delivery failures are only visible to someone who goes looking in the console.",
+		"shortDesc": "Attach an SNS topic to the AWS Config delivery channel",
+		"criticality": "L",
+		"downtime": 0,
+		"slowness": 0,
+		"additionalCost": 1,
+		"needFullTest": 0,
+		"ref": [
+			"[Notifications AWS Config sends to an SNS topic]<https://docs.aws.amazon.com/config/latest/developerguide/notifications-that-aws-config-sends-to-an-amazon-sns-topic.html>",
+			"[Managing the delivery channel]<https://docs.aws.amazon.com/config/latest/developerguide/manage-delivery-channel.html>"
+		],
+		"remediation": null,
+		"remediation_risk": null,
+		"remediation_doc": "https://docs.aws.amazon.com/config/latest/developerguide/manage-delivery-channel.html"
+	},
+	"configRecorderLastStatusFailed": {
+		"category": "RS",
+		"^description": "{$COUNT} region(s) have a configuration recorder whose lastStatus is FAILURE. The recorder is configured but is not successfully delivering, so the configuration history is incomplete or stale even though AWS Config appears enabled. The usual causes are an IAM service role that has lost permission, a delivery-channel S3 bucket that was deleted or whose bucket policy no longer allows config.amazonaws.com, or a KMS key that the role can no longer use. Read lastErrorCode and lastErrorMessage from describe-configuration-recorder-status to identify which.",
+		"shortDesc": "Fix the failing AWS Config recorder delivery",
+		"criticality": "H",
+		"downtime": 0,
+		"slowness": 0,
+		"additionalCost": 0,
+		"needFullTest": 1,
+		"ref": [
+			"[Managing the configuration recorder]<https://docs.aws.amazon.com/config/latest/developerguide/stop-start-recorder.html>",
+			"[Managing the delivery channel]<https://docs.aws.amazon.com/config/latest/developerguide/manage-delivery-channel.html>"
+		],
+		"remediation": null,
+		"remediation_risk": null,
+		"remediation_doc": "https://docs.aws.amazon.com/config/latest/developerguide/stop-start-recorder.html"
+	},
+	"configNoRules": {
+		"category": "S",
+		"^description": "{$COUNT} region(s) have no ACTIVE AWS Config rule. The configuration recorder is only the collection half of a detective control; rules are what turn recorded configuration into a compliance signal. With no active rule, nothing evaluates the recorded configuration and no non-compliance is ever raised, so the cost of recording is incurred with none of the detective benefit. Deploying a conformance pack (for example the AWS Foundational Security Best Practices or CIS pack) is the fastest way to get a baseline set of rules.",
+		"shortDesc": "Deploy AWS Config rules or a conformance pack",
+		"criticality": "M",
+		"downtime": 0,
+		"slowness": 0,
+		"additionalCost": 1,
+		"needFullTest": 0,
+		"ref": [
+			"[Evaluating resources with AWS Config rules]<https://docs.aws.amazon.com/config/latest/developerguide/evaluate-config.html>",
+			"[Managing AWS Config rules]<https://docs.aws.amazon.com/config/latest/developerguide/evaluate-config-rules.html>"
+		],
+		"remediation": null,
+		"remediation_risk": null,
+		"remediation_doc": "https://docs.aws.amazon.com/config/latest/developerguide/evaluate-config-rules.html"
+	},
+	"configRulesNonCompliant": {
+		"category": "S",
+		"^description": "{$COUNT} region(s) have at least one AWS Config rule reporting NON_COMPLIANT. Each non-compliant rule is a detective control that has already fired and is waiting on someone to act: the finding is a real drift from the baseline the rule encodes, not a configuration problem in AWS Config itself. Rules reporting INSUFFICIENT_DATA or NOT_APPLICABLE are excluded, because those states mean the rule has not evaluated anything rather than that something failed.",
+		"shortDesc": "Remediate the resources failing your AWS Config rules",
+		"criticality": "M",
+		"downtime": 0,
+		"slowness": 0,
+		"additionalCost": 0,
+		"needFullTest": 1,
+		"ref": [
+			"[Viewing compliance information]<https://docs.aws.amazon.com/config/latest/developerguide/view-manage-resource-config.html>",
+			"[Remediating non-compliant resources]<https://docs.aws.amazon.com/config/latest/developerguide/remediation.html>"
+		],
+		"remediation": null,
+		"remediation_risk": null,
+		"remediation_doc": "https://docs.aws.amazon.com/config/latest/developerguide/remediation.html"
+	},
+	"configNoRetentionPolicy": {
+		"category": "CO",
+		"^description": "{$COUNT} region(s) have no AWS Config retention configuration, so configuration item history is kept for the AWS default period rather than a period you have chosen deliberately. Setting a retention configuration makes the retention window explicit and auditable: shorten it to reduce storage cost where a long history has no value, or lengthen it (up to 2557 days, about 7 years) where an audit or regulatory obligation requires it. AWS Config supports one retention configuration per account per region.",
+		"shortDesc": "Set an explicit AWS Config retention period",
+		"criticality": "L",
+		"downtime": 0,
+		"slowness": 0,
+		"additionalCost": 0,
+		"needFullTest": 0,
+		"ref": [
+			"[Deleting AWS Config data using a retention period]<https://docs.aws.amazon.com/config/latest/developerguide/delete-config-data-with-retention-period.html>"
+		],
+		"remediation": "aws configservice put-retention-configuration --retention-period-in-days 2557",
+		"remediation_risk": "low",
+		"remediation_doc": "https://docs.aws.amazon.com/config/latest/developerguide/delete-config-data-with-retention-period.html"
+	},
+	"configAggregatorMissing": {
+		"category": "O",
+		"^description": "{$COUNT} region(s) have no AWS Config configuration aggregator. An aggregator collects configuration and compliance data from other regions and other accounts into one place, so that compliance can be assessed for the whole estate instead of region by region. Without one, an auditor or responder has to query every region and every account separately, which in practice means gaps go unnoticed. Note that an aggregator is only needed once per organisation or per aggregation region, so this finding may be expected in a single-account or single-region estate.",
+		"shortDesc": "Create a multi-region or organization Config aggregator",
+		"criticality": "L",
+		"downtime": 0,
+		"slowness": 0,
+		"additionalCost": 0,
+		"needFullTest": 0,
+		"ref": [
+			"[Multi-account multi-region data aggregation]<https://docs.aws.amazon.com/config/latest/developerguide/aggregate-data.html>"
+		],
+		"remediation": null,
+		"remediation_risk": null,
+		"remediation_doc": "https://docs.aws.amazon.com/config/latest/developerguide/aggregate-data.html"
+	},
+	"configNoRemediationActions": {
+		"category": "OS",
+		"^description": "{$COUNT} region(s) have AWS Config rules reporting NON_COMPLIANT with no remediation configuration attached to those rules. Attaching an SSM Automation document to a rule lets AWS Config correct the drift itself, either automatically or on approval, which closes the loop between detection and correction and removes the manual step that findings usually die at. Rules that are currently compliant are not reported by this check.",
+		"shortDesc": "Attach remediation actions to failing AWS Config rules",
+		"criticality": "L",
+		"downtime": 0,
+		"slowness": 0,
+		"additionalCost": 0,
+		"needFullTest": 1,
+		"ref": [
+			"[Remediating non-compliant resources with AWS Config rules]<https://docs.aws.amazon.com/config/latest/developerguide/remediation.html>"
+		],
+		"remediation": null,
+		"remediation_risk": null,
+		"remediation_doc": "https://docs.aws.amazon.com/config/latest/developerguide/remediation.html"
+	},
+	"configRecorderExcludesGlobalResources": {
+		"category": "S",
+		"^description": "{$COUNT} region(s) have a configuration recorder that does not record the global IAM resource types (AWS::IAM::User, AWS::IAM::Group, AWS::IAM::Role, AWS::IAM::Policy). IAM is where privilege escalation and persistence show up, so losing its configuration history removes the ability to answer 'when did this role get this policy'. Because includeGlobalResourceTypes is deprecated and is required to be false when the exclusion recording strategy is in use, this check determines effective coverage from the recording strategy and the inclusion/exclusion lists rather than trusting that flag on its own. Global resource types only need to be recorded in one region per account.",
+		"shortDesc": "Record global IAM resource types in one region",
+		"criticality": "M",
+		"downtime": 0,
+		"slowness": 0,
+		"additionalCost": 1,
+		"needFullTest": 0,
+		"ref": [
+			"[Selecting which resources Config records]<https://docs.aws.amazon.com/config/latest/developerguide/select-resources.html>",
+			"[Supported resource types]<https://docs.aws.amazon.com/config/latest/developerguide/resource-config-reference.html>"
+		],
+		"remediation": null,
+		"remediation_risk": null,
+		"remediation_doc": "https://docs.aws.amazon.com/config/latest/developerguide/select-resources.html"
+	}
+}

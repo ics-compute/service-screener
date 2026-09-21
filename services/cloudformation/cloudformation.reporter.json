@@ -1,0 +1,172 @@
+{
+    "cfnRollbackFailed": {
+        "category": "R",
+        "^description": "{$COUNT} CloudFormation stack(s) are in a *_FAILED state. A ROLLBACK_FAILED stack in particular is stuck: CloudFormation could not return it to its previous state, so it blocks every further update until someone continues the rollback manually or recreates the stack. Until then the deployed resources may match neither the old template nor the new one, and the stack cannot be used to deploy a fix.",
+        "shortDesc": "Resolve stacks in a failed state",
+        "criticality": "H",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 1,
+        "ref": [
+            "[Continue rolling back an update]<https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-continueupdaterollback.html>",
+            "[Troubleshooting]<https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/troubleshooting.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-continueupdaterollback.html"
+    },
+    "cfnDriftDetected": {
+        "category": "R",
+        "^description": "{$COUNT} CloudFormation stack(s) report DRIFTED \u2014 the live resources no longer match the template that is supposed to define them. The template has therefore stopped being a reliable description of what is deployed, and the next stack update may silently revert the manual change or fail outright when it collides with it. Drift is read from the DriftInformation that describe_stacks returns; no detection run is triggered by the scan.",
+        "shortDesc": "Reconcile drifted stacks with their templates",
+        "criticality": "M",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 1,
+        "ref": [
+            "[Detecting unmanaged configuration changes]<https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-stack-drift.html>",
+            "[Resolving drift]<https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/detect-drift-stack.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-stack-drift.html"
+    },
+    "cfnDriftNeverChecked": {
+        "category": "R",
+        "^description": "{$COUNT} CloudFormation stack(s) have a drift status of NOT_CHECKED, meaning drift detection has never run against them. Whether the live resources still match the template is therefore simply unknown \u2014 so for these stacks, infrastructure-as-code provides no actual assurance about the deployed state. This is the most common real-world drift status, and unlike DRIFTED it is invisible unless specifically looked for.",
+        "shortDesc": "Run drift detection on stacks never checked",
+        "criticality": "L",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Detecting unmanaged configuration changes]<https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-stack-drift.html>",
+            "[Detect drift on a stack]<https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/detect-drift-stack.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/detect-drift-stack.html"
+    },
+    "cfnStackPolicyMissing": {
+        "category": "S",
+        "^description": "{$COUNT} CloudFormation stack(s) have no stack policy. Nothing then prevents a routine update from replacing or deleting a stateful resource \u2014 a change to a database identifier or an RDS engine property can trigger a replacement that destroys the data, and CloudFormation will carry it out because nothing told it not to. A stack policy is the mechanism for denying updates to specific resources.",
+        "shortDesc": "Attach a stack policy to protect stateful resources",
+        "criticality": "M",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 1,
+        "ref": [
+            "[Prevent updates to stack resources]<https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/protect-stack-resources.html>",
+            "[Stack policies]<https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/protect-stack-resources.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/protect-stack-resources.html"
+    },
+    "cfnTerminationProtectionDisabled": {
+        "category": "R",
+        "^description": "{$COUNT} CloudFormation stack(s) have termination protection disabled. A single delete-stack call then removes every resource the stack manages, and for a stack that owns a database, a bucket with data, or a KMS key, that deletion is unrecoverable. Termination protection is a one-flag guardrail against a mistyped stack name.",
+        "shortDesc": "Enable termination protection on stacks",
+        "criticality": "M",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Protect a stack from being deleted]<https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-protect-stacks.html>",
+            "[Stack options]<https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-console-add-tags.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-protect-stacks.html"
+    },
+    "cfnNoRollbackConfiguration": {
+        "category": "R",
+        "^description": "{$COUNT} CloudFormation stack(s) have no rollback triggers. A deployment that succeeds structurally but breaks the application \u2014 every resource created correctly, yet the service returning errors \u2014 is therefore not rolled back, because nothing is watching an alarm during the update window. Rollback triggers connect CloudWatch alarms to the deployment so a bad release reverts itself.",
+        "shortDesc": "Configure rollback triggers for deployments",
+        "criticality": "M",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Monitor and roll back stack operations]<https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-rollback-triggers.html>",
+            "[Rollback configuration]<https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-rollback-triggers.html"
+    },
+    "cfnNoNotifications": {
+        "category": "O",
+        "^description": "{$COUNT} CloudFormation stack(s) have no NotificationARNs. Stack events \u2014 a failed update, an unexpected resource replacement, a rollback \u2014 are then visible only to somebody who happens to be watching the console at the time. An SNS topic turns those events into something that can be alerted on, logged and reviewed after the fact.",
+        "shortDesc": "Configure SNS notifications for stack events",
+        "criticality": "L",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Stack notifications]<https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-console-add-tags.html>",
+            "[Monitoring stacks]<https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/stacks-monitoring.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/stacks-monitoring.html"
+    },
+    "cfnOldStackUnupdated": {
+        "category": "O",
+        "^description": "{$COUNT} CloudFormation stack(s) have not been updated in more than a year. Their templates encode the AMIs, instance types, runtime versions and practices of that time, and nobody has verified since then that the template would even deploy successfully \u2014 so the stack is simultaneously the source of truth for live infrastructure and an untested artefact. These are also the stacks most likely to reference resources that no longer exist.",
+        "shortDesc": "Review stacks not updated in over a year",
+        "criticality": "L",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Stack updates]<https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks.html>",
+            "[Working with stacks]<https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/stacks.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks.html"
+    },
+    "cfnIAMCapabilityGranted": {
+        "category": "S",
+        "^description": "{$COUNT} CloudFormation stack(s) were deployed with CAPABILITY_IAM or CAPABILITY_NAMED_IAM, so their templates can create IAM roles, users and policies. This is legitimate and necessary for most stacks, which is why it is reported for review rather than as a failure \u2014 but it does mean those templates form part of the account's privilege surface, and a change to one can grant permissions without any IAM-specific review taking place.",
+        "shortDesc": "Review stacks able to create IAM identities",
+        "criticality": "L",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Acknowledging IAM resources]<https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-template.html>",
+            "[Controlling access with IAM]<https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-servicerole.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-template.html"
+    },
+    "cfnNoTags": {
+        "category": "O",
+        "^description": "{$COUNT} CloudFormation stack(s) carry no tags. CloudFormation propagates stack-level tags to every resource it creates that supports tagging, which makes the stack tag the cheapest possible way to tag a whole deployment consistently \u2014 and an untagged stack means every resource it owns is likewise unattributed.",
+        "shortDesc": "Tag stacks to propagate tags to their resources",
+        "criticality": "L",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Setting stack tags]<https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-console-add-tags.html>",
+            "[Tagging AWS resources]<https://docs.aws.amazon.com/tag-editor/latest/userguide/tagging.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-console-add-tags.html"
+    }
+}

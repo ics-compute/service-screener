@@ -4,15 +4,15 @@ import boto3
 import constants as _C
 
 class Config:
-    
+
     AWS_SDK = {
         'signature_version': 'v4'
     }
 
     ADVISOR = {
         'TITLE': 'Service Screener',
-        'VERSION': '2.4.0',
-        'LAST_UPDATE': '30-Jun-2025'
+        'VERSION': '2.5.0',
+        'LAST_UPDATE': '30-Mar-2026'
     }
 
     ADMINLTE = {
@@ -26,26 +26,26 @@ class Config:
         'iam',
         'cloudfront'
     ]
-    
+
     KEYWORD_SERVICES = [
-        'lambda'    
+        'lambda'
     ]
-    
+
     CURRENT_REGION = 'us-east-1'
-    
+
     @staticmethod
     def init():
         global cache
         cache = {}
-    
+
     @staticmethod
     def setAccountInfo(__AWS_CONFIG):
         print(" -- Acquiring identify info...")
-        
+
         ssBoto = Config.get('ssBoto', None)
-        
+
         stsClient = ssBoto.client('sts')
-        
+
         resp = stsClient.get_caller_identity()
         stsInfo = {
             'UserId': resp.get('UserId'),
@@ -55,13 +55,13 @@ class Config:
 
         Config.set('stsInfo', stsInfo)
         acctId = stsInfo['Account']
-        
+
         adir = 'adminlte/aws/' + acctId
-        
+
         Config.set('HTML_ACCOUNT_FOLDER_FULLPATH', _C.ROOT_DIR + '/' + adir)
         Config.set('HTML_ACCOUNT_FOLDER_PATH', adir)
-       
-    @staticmethod 
+
+    @staticmethod
     def set(key, val):
         cache[key] = val
 
@@ -71,38 +71,38 @@ class Config:
         DEBUG = False
         if key in cache:
             return cache[key]
-        
+
         if defaultValue == False:
             if DEBUG:
                 traceback.print_exc()
-        
+
         return defaultValue
-        
+
     @staticmethod
     def retrieveAllCache():
         return cache
-        
-    
+
+
     ## do checking for prefix=cloud, if found, use first 8character instead
     ## other than that, first 3 prefix should be unique
     @staticmethod
     def getDriversClassPrefix(driver):
         name = Config.extractDriversClassPrefix(driver)
         return 'regionInfo::' + name
-    
+
     @staticmethod
     def extractDriversClassPrefix(driver):
         ## handling for S3
         if driver[:2].lower() == 's3':
             return 's3'
-            
+
         if driver[:7].lower() == 'elastic':
             classPrefix = driver[:10]
         else:
             classPrefix = driver[:3]
             if len(driver) > 3 and driver[:5] == 'cloud':
                 classPrefix = driver[:8]
-            
+
         return classPrefix
 
 try:

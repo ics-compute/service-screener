@@ -1,6 +1,7 @@
 import boto3
 import botocore
 import datetime
+import re
 import time
 from utils.Config import Config
 
@@ -32,27 +33,27 @@ class Ec2Instance(Evaluator):
         self._resourceName = ec2InstanceData['InstanceId']
 
         self.init()
-        
+
         self.getImageInfo()
-    
+
         self.addII('platform', ec2InstanceData['Platform'] if 'Platform' in ec2InstanceData else 'linux')
         self.addII('instanceType', ec2InstanceData['InstanceType'])
-    
+
     # supporting functions
     def getCPUUtil(self):
         return self.ec2Util
-    
+
     def getEC2UtilizationMetrics(self, metricName, verifyDay, statistics=['Average']):
         cwClient = self.cwClient
         instance = self.ec2InstanceData
-        
+
         dimensions = [
             {
                 'Name': 'InstanceId',
                 'Value': instance['InstanceId']
             },
         ]
-        
+
         results = cwClient.get_metric_statistics(
             Dimensions=dimensions,
             Namespace='AWS/EC2',
@@ -62,9 +63,9 @@ class Ec2Instance(Evaluator):
             Period=24 * 60 * 60,
             Statistics=statistics,
         )
-        
+
         return results
-    
+
     def checkMetricsLowUsage(self, metricName, verifyDay, thresholdDay, thresholdValue):
         result = self.getEC2UtilizationMetrics(metricName, verifyDay)
         cnt = 0
@@ -78,18 +79,18 @@ class Ec2Instance(Evaluator):
             return False
         else:
             return True
-        
+
     def checkMetricsHighUsage(self, metricName, verifyDay, thresholdDay, thresholdValue):
         result = self.getEC2UtilizationMetrics(metricName, verifyDay)
-        
+
         if len(result['Datapoints']) < verifyDay:
             return False
-        
+
         cnt = 0
         for datapoint in result['Datapoints']:
             if datapoint['Average'] > thresholdValue:
                 cnt += 1
-        
+
         if cnt < thresholdDay:
             return False
         else:
@@ -97,47 +98,47 @@ class Ec2Instance(Evaluator):
 
     def checkMetricsSpikyUsage(self, metricName, verifyDay, thresholdDay, maxThresholdValue, avgThresholdValue, statistics):
         result = self.getEC2UtilizationMetrics(metricName, verifyDay, statistics)
-        
+
         if len(result['Datapoints']) < verifyDay:
             return False
-        
+
         cnt = 0
         for datapoint in result['Datapoints']:
             if (datapoint['Average'] < avgThresholdValue) and (datapoint['Maximum'] > maxThresholdValue):
                 cnt += 1
-        
+
         if cnt < thresholdDay:
             return False
         else:
             return True
-    
+
     def setTimeDeltaInDays(self):
         launchTimeData = self.ec2InstanceData['LaunchTime']
-        
+
         timeDelta = datetime.datetime.now().timestamp() - launchTimeData.timestamp()
         launchDay = int(timeDelta / (60*60*24))
-        
+
         self.launchTimeDeltaInDays = launchDay
-        
+
     def getImageInfo(self):
         self.ec2ImageInfo = None
         imageId = self.ec2InstanceData['ImageId']
         resp = self.ec2Client.describe_images(ImageIds=[imageId])
         images = resp.get('Images')
-        
+
         self.ec2ImageInfo = None
         for image in images:
             self.ec2ImageInfo = image
-    
+
     # checks
     def _checkSQLServerEdition(self):
         EolVersion = Config.get('SQLEolVersion', 2012)
 
         if self.ec2ImageInfo == None:
-            return 
-            
+            return
+
         image = self.ec2ImageInfo
-        
+
         if 'PlatformDetails' in image and image['PlatformDetails'].find('SQL Server') > 0:
             pos = image['Name'].find('SQL')
             if pos > 0:
@@ -145,25 +146,25 @@ class Ec2Instance(Evaluator):
                 self.addII('SQLServer', sqlVers)
                 if EolVersion >= sqlVers:
                     self.results['SQLServerEOL'] = [-1, image['Name']]
-    
+
     def _checkWindowsServerEdition(self):
         if self.ec2ImageInfo == None:
             return
-        
+
         image = self.ec2ImageInfo
-        
+
         if 'Platform' in image and not image['Platform'] == 'windows':
             return
-        
+
         if 'Name' in image and 'Windows_Server' in image['Name']:
             nameInfo = image['Name'].split('-')
             if len(nameInfo) <= 2:
                 ## Unable to detect OS version from name, skip
                 return
-            
+
             if len(nameInfo[1]) == 4:
                 EolVersion = Config.get('WindowsEolVersion', 2012)
-                
+
                 if not nameInfo[1] in EolVersion:
                     _warn("Windows Edition not found in EOL Lookup: {}".format(nameInfo[1]))
                 else:
@@ -174,15 +175,15 @@ class Ec2Instance(Evaluator):
                         self.results['WindowsOSNotLatest'] = [-1, nameInfo[1]]
                     else:
                         return
-        
+
     def _checkInstanceTypeGeneration(self):
         instanceArr = aws_parseInstanceFamily(self.ec2InstanceData['InstanceType'], region=self.ec2Client.meta.region_name)
         instancePrefixArr = instanceArr['prefixDetail']
-        
+
         instancePrefixArr['version'] = int(instancePrefixArr['version'])+1
         size = instanceArr['suffix']
         newFamily = instancePrefixArr['family'] + str(instancePrefixArr['version']) + instancePrefixArr['attributes']
-       
+
         try:
             results = self.ec2Client.describe_instance_types(
                 InstanceTypes=[newFamily + '.' + size]
@@ -193,105 +194,105 @@ class Ec2Instance(Evaluator):
                 return
             else:
                 raise
-    
+
         self.results['EC2NewGen'] = [-1, self.ec2InstanceData['InstanceType']]
         return
-        
+
     def _checkDetailedMonitoringEnabled(self):
 
         if self.ec2InstanceData['Monitoring']['State'] == 'disabled':
             self.results['EC2DetailedMonitor'] = [-1, 'Disabled']
         else:
             self.results['EC2DetailedMonitor'] = [1, 'Enabled']
-        
+
         return
-        
+
     def _checkIamProfileAssociated(self):
         if "IamInstanceProfile" not in self.ec2InstanceData:
             self.results['EC2IamProfile'] = [-1, '']
         return
-    
+
     def _checkCWMemoryMetrics(self):
         cw_client = self.cwClient
         instance = self.ec2InstanceData
-    
+
         dimensions = [
             {
                 'Name': 'InstanceId',
                 'Value': instance['InstanceId']
             }
         ]
-    
+
         result = cw_client.list_metrics(
             MetricName='mem_used_percent',
             Namespace='CWAgent',
             Dimensions=dimensions
         )
-    
+
         if result['Metrics']:
             return
-    
+
         result = cw_client.list_metrics(
             MetricName='Memory % Committed Bytes In Use',
             Namespace='CWAgent',
             Dimensions=dimensions
         )
-    
+
         if result['Metrics']:
             return
-    
+
         self.results['EC2MemoryMonitor'] = [-1, 'Disabled']
         return
-        
+
     def _checkCWDiskMetrics(self):
         cwClient = self.cwClient
         instance = self.ec2InstanceData
-        
+
         dimensions = [
             {
                 'Name': 'InstanceId',
                 'Value': instance['InstanceId']
             }
         ]
-        
+
         result = cwClient.list_metrics(
             MetricName='disk_used_percent',
             Namespace='CWAgent',
             Dimensions=dimensions
         )
-        
+
         if result['Metrics']:
             return
-        
+
         result = cwClient.list_metrics(
             MetricName='LogicalDisk % Free Space',
             Namespace='CWAgent',
             Dimensions=dimensions
         )
-        
+
         if result['Metrics']:
             return
-        
+
         self.results['EC2DiskMonitor'] = [-1, 'Disabled']
         return
-        
+
     # def _checkEC2Active(self):
     #     verifyDay = 7
-    
+
     #     cwClient = self.cwClient
     #     instance = self.ec2InstanceData
     #     launchDay = self.launchTimeDeltaInDays
-        
+
     #     if launchDay < verifyDay:
     #         return
-    
+
     #     dimensions = [
     #         {
     #             'Name': 'InstanceId',
     #             'Value': instance['InstanceId']
     #         }
     #     ]
-    
+
     #     results = cwClient.get_metric_statistics(
     #         Dimensions=dimensions,
     #         Namespace='AWS/EC2',
@@ -301,47 +302,47 @@ class Ec2Instance(Evaluator):
     #         Period=verifyDay * 24 * 60 * 60,
     #         Statistics=['Average']
     #     )
-    
+
     #     if not results['Datapoints']:
     #         results['Datapoints'] = [{'Average': 0.0}]
     #     if results['Datapoints'][0]['Average'] < 5.0:
     #         self.results['EC2Active'] = [-1, 'Inactive']
-        
+
     #     return
-        
+
     def _checkSecurityGroupsAttached(self):
         instance = self.ec2InstanceData
-    
+
         if len(instance['SecurityGroups']) > 50:
             self.results['EC2SGNumber'] = [-1, len(instance['SecurityGroups'])]
-    
+
     def _checkEC2LowUtilization(self):
         instance = self.ec2InstanceData
         launchDay = self.launchTimeDeltaInDays
-    
+
         verifyDay = 14
         thresholdDay = 4
-        
+
         if launchDay < verifyDay:
             return
-        
+
         cpuThresholdPercent = 10
         cpuLowUsage = self.checkMetricsLowUsage('CPUUtilization', verifyDay, thresholdDay, cpuThresholdPercent)
-        
+
         if not cpuLowUsage:
             return
-        
+
         networkThresholdByte = 5 * 1024 * 1024
         networkOutLowUsage = self.checkMetricsLowUsage('NetworkOut', verifyDay, thresholdDay, networkThresholdByte)
-        
+
         if not networkOutLowUsage:
             return
-        
+
         networkInLowUsage = self.checkMetricsLowUsage('NetworkIn', verifyDay, thresholdDay, networkThresholdByte)
-        
+
         if not networkInLowUsage:
             return
-        
+
         self.results['EC2LowUtilization'] = [-1, '']
         self.setChartData("EC2 Instance Utilization", 'Over Provisioned', 1)
         return
@@ -350,22 +351,22 @@ class Ec2Instance(Evaluator):
     def _checkEC2HighUtilization(self):
         instance = self.ec2InstanceData
         launchDay = self.launchTimeDeltaInDays
-    
+
         verifyDay = 14
         thresholdDay = 4
-        
+
         if launchDay < verifyDay:
             return
-        
+
         cpuThresholdPercent = 90
         cpuHighUsage = self.checkMetricsHighUsage('CPUUtilization', verifyDay, thresholdDay, cpuThresholdPercent)
         if not cpuHighUsage:
             return
-    
+
         self.results['EC2HighUtilization'] = [-1, '']
         self.setChartData("EC2 Instance Utilization", 'Under Provisioned', 1)
         return
-    
+
     def _checkEC2SpikyUtilization(self):
         instance = self.ec2InstanceData
         launchDay = self.launchTimeDeltaInDays
@@ -385,15 +386,15 @@ class Ec2Instance(Evaluator):
         self.results['EC2SpikyUtilization'] = [-1, '']
         self.setChartData("EC2 Instance Utilization", 'Spiky', 1)
         return
-    
+
     def _checkEC2PublicIP(self):
         instance = self.ec2InstanceData
-        
+
         if instance.get('PublicIpAddress') is None:
             return
-        
+
         self.results['EC2InstancePublicIP'] = [-1, instance.get('PublicIpAddress')]
-        
+
         try:
             addrResp = self.ec2Client.describe_addresses(
                 PublicIps=[instance.get('PublicIpAddress')]
@@ -403,27 +404,93 @@ class Ec2Instance(Evaluator):
                 self.results['EC2InstanceAutoPublicIP'] = [-1, instance.get('PublicIpAddress')]
             else:
                 raise(e)
-        
+
         return
-    
+
     def _checkEC2SubnetAutoPublicIP(self):
         instance = self.ec2InstanceData
-        
+
         results = self.ec2Client.describe_subnets(
             SubnetIds = [instance.get('SubnetId')]
         )
-        
+
         for subnet in results.get('Subnets'):
             if subnet.get('MapPublicIpOnLaunch'):
                 self.results['EC2SubnetAutoPublicIP'] = [-1, subnet.get('SubnetId')]
-        
+
         return
-    
+
     def _checkEC2HasTag(self):
         if self.ec2InstanceData.get('Tags') is None:
             self.results['EC2HasTag'] = [-1, '']
         return
-    
+
+    def _checkIMDSv2(self):
+        """Check if instance enforces IMDSv2 (HttpTokens = required)"""
+        instance = self.ec2InstanceData
+        metadataOptions = instance.get('MetadataOptions', {})
+        httpTokens = metadataOptions.get('HttpTokens', 'optional')
+
+        if httpTokens != 'required':
+            self.results['EC2IMDSv2'] = [-1, 'Not enforced']
+        return
+
+    def _checkStoppedTooLong(self):
+        """Flag instances stopped for more than 30 days (still incurring EBS cost)"""
+        instance = self.ec2InstanceData
+        if instance['State']['Name'] != 'stopped':
+            return
+
+        reason = instance.get('StateTransitionReason', '')
+        # Format: "User initiated (2024-01-15 10:30:00 GMT)"
+        if '(' in reason and ')' in reason:
+            match = re.search(r'\((\d{4}-\d{2}-\d{2})', reason)
+            if match:
+                stopped_date = datetime.datetime.strptime(match.group(1), '%Y-%m-%d').date()
+                days_stopped = (datetime.date.today() - stopped_date).days
+                if days_stopped > 30:
+                    self.results['EC2StoppedTooLong'] = [-1, f'{days_stopped} days']
+        return
+
+    def _checkTerminationProtection(self):
+        """Check if instance has termination protection enabled.
+
+        Stopped instances are intentionally included: they can be critical
+        (e.g. reserved for DR failover) and still benefit from deletion
+        protection. Only terminated/shutting-down instances are skipped.
+
+        This uses describe_instance_attribute, which has no batch form and
+        is therefore called once per instance. The shared boto client is
+        configured with standard retry mode (max_attempts=5), so transient
+        throttling is retried automatically by botocore. If throttling still
+        surfaces after retries, the check is skipped (with a warning) rather
+        than emitting a misleading result.
+        """
+        instance = self.ec2InstanceData
+
+        # Skip terminated/shutting-down instances (nothing left to protect)
+        if instance['State']['Name'] in ('terminated', 'shutting-down'):
+            return
+
+        try:
+            resp = self.ec2Client.describe_instance_attribute(
+                InstanceId=instance['InstanceId'],
+                Attribute='disableApiTermination'
+            )
+            protected = resp.get('DisableApiTermination', {}).get('Value', False)
+            if not protected:
+                self.results['EC2NoTerminationProtection'] = [-1, 'Disabled']
+        except botocore.exceptions.ClientError as e:
+            code = e.response['Error']['Code']
+            if code in ('RequestLimitExceeded', 'Throttling', 'ThrottlingException'):
+                _warn("Throttled while checking termination protection for {}; skipping.".format(instance['InstanceId']), forcePrint=False)
+            # Other client errors (e.g. permission) are skipped silently to
+            # avoid emitting a false 'Disabled' result.
+            return
+        except Exception:
+            return
+        return
+
     def checkInstanceTypeAvailable(self, instanceType):
         resp = self.ec2Client.describe_instance_type_offerings(
             LocationType='region',
@@ -444,12 +511,12 @@ class Ec2Instance(Evaluator):
         )
         if len(resp['InstanceTypeOfferings']) > 0:
             return True
-    
+
     def _checkEC2AMD(self):
         osType = self.getII('platform')
         if osType == 'linux':
             return
-        
+
         instanceArr = aws_parseInstanceFamily(self.ec2InstanceData['InstanceType'], region=self.ec2Client.meta.region_name)
         prefixDetail = instanceArr['prefixDetail']
 
@@ -457,17 +524,17 @@ class Ec2Instance(Evaluator):
             amdInstanceType = prefixDetail['family'] + prefixDetail['version'] + 'a.' + instanceArr['suffix']
             nextVersion = str(int(prefixDetail['version']) + 1)
             nextVerInstanceType = prefixDetail['family'] + nextVersion + 'a.' + instanceArr['suffix']
-            
+
             if self.checkInstanceTypeAvailable(amdInstanceType) or self.checkInstanceTypeAvailable(nextVerInstanceType):
                 self.results['EC2AMD'] = [-1, self.ec2InstanceData['InstanceType']]
-                
+
         return
-    
+
     def _checkEC2Graviton(self):
         osType = self.getII('platform')
         if osType != 'linux':
             return
-        
+
         instanceArr = aws_parseInstanceFamily(self.ec2InstanceData['InstanceType'], region=self.ec2Client.meta.region_name)
         prefixDetail = instanceArr['prefixDetail']
 
@@ -475,32 +542,178 @@ class Ec2Instance(Evaluator):
             gInstanceType = prefixDetail['family'] + prefixDetail['version'] + 'g.' + instanceArr['suffix']
             nextVersion = str(int(prefixDetail['version']) + 1)
             nextVerInstanceType = prefixDetail['family'] + nextVersion + 'g.' + instanceArr['suffix']
-            
+
             if self.checkInstanceTypeAvailable(gInstanceType) or self.checkInstanceTypeAvailable(nextVerInstanceType):
                 self.results['EC2Graviton'] = [-1, self.ec2InstanceData['InstanceType']]
-                
+
         return
-    
-    
-    def _checkTags(self):    
+
+
+    def _checkTags(self):
         ## Prevent error when 'Tags' not found in the dict
         if 'Tags' not in self.ec2InstanceData:
             return
-        
+
         tags = self.ec2InstanceData['Tags']
-        
+
         keyTags = []
         for tag in tags:
             if tag['Key'].lower() in _C.EC2_TAGS_KEYWORDS and tag['Value'].lower() not in _C.EC2_TAG_VALUE_FALSE_KEYWORDS:
                 keyTags.append(tag['Key'].lower())
                 continue
-                
+
             if tag['Value'].lower() in _C.EC2_TAGS_KEYWORDS:
                 keyTags.append(tag['Value'].lower())
                 continue
 
         if len(keyTags) > 0:
             self.addII('keyTags', keyTags)
-            
+
         return
-    
+
+
+    def _checkEC2EbsOptimized(self):
+        """Check if EBS optimization is available but not enabled"""
+        instance = self.ec2InstanceData
+        instanceType = instance['InstanceType']
+
+        # Check if instance type supports EBS optimization
+        try:
+            resp = self.ec2Client.describe_instance_types(
+                InstanceTypes=[instanceType]
+            )
+
+            if not resp['InstanceTypes']:
+                return
+
+            instanceTypeInfo = resp['InstanceTypes'][0]
+            ebsInfo = instanceTypeInfo.get('EbsInfo', {})
+
+            # Check if EBS optimization is supported
+            ebsOptimizedSupport = ebsInfo.get('EbsOptimizedSupport')
+
+            if ebsOptimizedSupport == 'unsupported':
+                # Instance type doesn't support EBS optimization
+                return
+
+            # Check if EBS optimization is enabled on the instance
+            ebsOptimized = instance.get('EbsOptimized', False)
+
+            if not ebsOptimized:
+                # EBS optimization is supported but not enabled
+                self.results['EC2EbsOptimized'] = [-1, instanceType]
+
+        except Exception as e:
+            # If we can't determine, skip the check
+            return
+
+    def _checkEC2RootVolumeImplications(self):
+        """Check root volume backup strategy"""
+        instance = self.ec2InstanceData
+
+        # Get root device name
+        rootDeviceName = instance.get('RootDeviceName')
+        if not rootDeviceName:
+            return
+
+        # Find root volume in block device mappings
+        blockDeviceMappings = instance.get('BlockDeviceMappings', [])
+        rootVolume = None
+
+        for mapping in blockDeviceMappings:
+            if mapping.get('DeviceName') == rootDeviceName:
+                rootVolume = mapping
+                break
+
+        if not rootVolume or 'Ebs' not in rootVolume:
+            return
+
+        # Check if DeleteOnTermination is enabled
+        deleteOnTermination = rootVolume['Ebs'].get('DeleteOnTermination', True)
+
+        if not deleteOnTermination:
+            # Root volume persists after termination, no issue
+            return
+
+        # Root volume will be deleted on termination, check for recent snapshots
+        volumeId = rootVolume['Ebs'].get('VolumeId')
+        if not volumeId:
+            return
+
+        try:
+            # Check for snapshots of this volume
+            snapshotResp = self.ec2Client.describe_snapshots(
+                Filters=[
+                    {
+                        'Name': 'volume-id',
+                        'Values': [volumeId]
+                    }
+                ]
+            )
+
+            snapshots = snapshotResp.get('Snapshots', [])
+
+            if not snapshots:
+                # No snapshots exist for root volume with DeleteOnTermination=True
+                self.results['EC2RootVolumeImplications'] = [-1, volumeId]
+                return
+
+            # Check if most recent snapshot is within 7 days
+            latestSnapshot = max(snapshots, key=lambda x: x['StartTime'])
+            timeDelta = datetime.datetime.now(datetime.timezone.utc) - latestSnapshot['StartTime']
+            daysSinceSnapshot = timeDelta.days
+
+            if daysSinceSnapshot > 7:
+                # Latest snapshot is outdated
+                self.results['EC2RootVolumeImplications'] = [-1, volumeId]
+
+        except Exception as e:
+            # If we can't check snapshots, skip
+            return
+    def _checkSeparateOSDataVolumes(self):
+        """Check if instance has separate OS and data volumes"""
+        instance = self.ec2InstanceData
+        blockDeviceMappings = instance.get('BlockDeviceMappings', [])
+
+        # Only flag if instance has exactly 1 block device (root only) or none
+        if len(blockDeviceMappings) <= 1:
+            self.results['EC2SeparateOSDataVolumes'] = [-1, f"{len(blockDeviceMappings)} volume(s)"]
+        return
+
+    def _checkInstanceStoreUsage(self):
+        """Check if instance type has instance store and validate usage"""
+        instance = self.ec2InstanceData
+        instanceType = instance.get('InstanceType', '')
+
+        try:
+            resp = self.ec2Client.describe_instance_types(
+                InstanceTypes=[instanceType]
+            )
+
+            instanceTypes = resp.get('InstanceTypes', [])
+            if not instanceTypes:
+                return
+
+            instanceTypeInfo = instanceTypes[0]
+            instanceStorageInfo = instanceTypeInfo.get('InstanceStorageInfo')
+
+            if not instanceStorageInfo:
+                # Instance type doesn't support instance store, nothing to check
+                return
+
+            # Instance type supports instance store - check if ephemeral mappings exist
+            blockDeviceMappings = instance.get('BlockDeviceMappings', [])
+            hasEphemeral = False
+            for mapping in blockDeviceMappings:
+                if 'Ebs' not in mapping:
+                    # Non-EBS mapping = ephemeral/instance store
+                    hasEphemeral = True
+                    break
+
+            if not hasEphemeral:
+                totalSizeGb = instanceStorageInfo.get('TotalSizeInGB', 0)
+                self.results['EC2InstanceStoreUsage'] = [-1, f"{totalSizeGb}GB available"]
+
+        except Exception:
+            return
+

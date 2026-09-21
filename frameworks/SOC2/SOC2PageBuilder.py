@@ -2,9 +2,9 @@ from frameworks.FrameworkPageBuilder import FrameworkPageBuilder
 
 class SOC2PageBuilder(FrameworkPageBuilder):
     def init(self):
-        super().__init__()
+        super().init()
         self.template = 'default'
-        
+
     def _hookPostBuildContent(self):
         # Add documentation references to the HTML output
         self.content += """

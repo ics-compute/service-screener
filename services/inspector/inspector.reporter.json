@@ -1,0 +1,172 @@
+{
+    "inspectorNotEnabled": {
+        "category": "S",
+        "^description": "{$COUNT} region(s) do not have Amazon Inspector enabled. Inspector continuously scans EC2 instances, container images in ECR and Lambda functions against the CVE databases, correlating each finding with network reachability so exploitable vulnerabilities are prioritised. Without it, the account has no automated view of which of its workloads carry known vulnerabilities.",
+        "shortDesc": "Enable Amazon Inspector",
+        "criticality": "H",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 1,
+        "needFullTest": 0,
+        "ref": [
+            "[What is Inspector]<https://docs.aws.amazon.com/inspector/latest/user/what-is-inspector.html>",
+            "[Getting started]<https://docs.aws.amazon.com/inspector/latest/user/getting_started_tutorial.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/inspector/latest/user/what-is-inspector.html"
+    },
+    "inspectorEc2ScanningDisabled": {
+        "category": "S",
+        "^description": "{$COUNT} region(s) have Inspector enabled but EC2 scanning disabled. EC2 instances are the workloads most exposed to the network and most likely to run an unpatched OS package with a known CVE. With EC2 scanning off, the instance fleet's vulnerability posture is unknown.",
+        "shortDesc": "Enable Inspector EC2 scanning",
+        "criticality": "H",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[EC2 scanning]<https://docs.aws.amazon.com/inspector/latest/user/scanning-ec2.html>",
+            "[Security Hub control SSM.2 / Inspector]<https://docs.aws.amazon.com/securityhub/latest/userguide/inspector-controls.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/inspector/latest/user/scanning-ec2.html"
+    },
+    "inspectorEcrScanningDisabled": {
+        "category": "S",
+        "^description": "{$COUNT} region(s) have ECR container image scanning disabled. A vulnerable base image is inherited by every container built from it and every task that runs it, so a single unscanned image can propagate a CVE across an entire service. Inspector scans images on push and continuously as new CVEs are published.",
+        "shortDesc": "Enable Inspector ECR scanning",
+        "criticality": "M",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[ECR scanning]<https://docs.aws.amazon.com/inspector/latest/user/scanning-ecr.html>",
+            "[Container image scanning]<https://docs.aws.amazon.com/inspector/latest/user/findings-types.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/inspector/latest/user/scanning-ecr.html"
+    },
+    "inspectorLambdaScanningDisabled": {
+        "category": "S",
+        "^description": "{$COUNT} region(s) have Lambda standard scanning disabled. Inspector scans the dependencies packaged with a function for known vulnerabilities \u2014 the function's own supply chain, which is otherwise never reviewed after deployment. Serverless code is deployed and forgotten more often than any other kind, which makes this coverage valuable.",
+        "shortDesc": "Enable Inspector Lambda scanning",
+        "criticality": "M",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Lambda scanning]<https://docs.aws.amazon.com/inspector/latest/user/scanning-lambda.html>",
+            "[Lambda standard scanning]<https://docs.aws.amazon.com/inspector/latest/user/scanning-lambda.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/inspector/latest/user/scanning-lambda.html"
+    },
+    "inspectorLambdaCodeScanningDisabled": {
+        "category": "S",
+        "^description": "{$COUNT} region(s) have Lambda code scanning disabled. This deeper scan uses automated reasoning to find vulnerabilities in the function's own source code, not just its dependencies \u2014 injection flaws, hardcoded credentials and insecure logic. It is a defence-in-depth addition beyond standard Lambda scanning, so this is advisory.",
+        "shortDesc": "Consider Inspector Lambda code scanning",
+        "criticality": "L",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Lambda code scanning]<https://docs.aws.amazon.com/inspector/latest/user/scanning-lambda-code.html>",
+            "[Lambda scanning]<https://docs.aws.amazon.com/inspector/latest/user/scanning-lambda.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/inspector/latest/user/scanning-lambda-code.html"
+    },
+    "inspectorCodeRepositoryScanningDisabled": {
+        "category": "S",
+        "^description": "{$COUNT} region(s) have code repository scanning disabled. When source repositories are connected, Inspector scans them for exposed secrets and vulnerable dependencies at the source, catching a leaked credential or a known-bad package before it is ever built and deployed rather than after. This resource type is reported by the current Inspector API.",
+        "shortDesc": "Enable Inspector code repository scanning",
+        "criticality": "M",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Code security scanning]<https://docs.aws.amazon.com/inspector/latest/user/code-security-scanning.html>",
+            "[Getting started]<https://docs.aws.amazon.com/inspector/latest/user/getting_started_tutorial.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/inspector/latest/user/code-security-scanning.html"
+    },
+    "inspectorCoverageGap": {
+        "category": "S",
+        "^description": "{$COUNT} region(s) have a significant share of resources with INACTIVE scan coverage. An INACTIVE resource is enrolled in Inspector but not actually being scanned \u2014 commonly an EC2 instance without the SSM agent, or an unsupported OS. It looks covered in the console while its vulnerabilities remain unknown, which is the most dangerous coverage state because it is silent.",
+        "shortDesc": "Close Inspector coverage gaps",
+        "criticality": "M",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Understanding coverage]<https://docs.aws.amazon.com/inspector/latest/user/managing-coverage.html>",
+            "[Coverage troubleshooting]<https://docs.aws.amazon.com/inspector/latest/user/troubleshooting.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/inspector/latest/user/managing-coverage.html"
+    },
+    "inspectorCriticalFindings": {
+        "category": "S",
+        "^description": "{$COUNT} region(s) have active CRITICAL Inspector findings. A critical finding is a severe, typically remotely exploitable vulnerability on a resource Inspector has determined is reachable. These are the vulnerabilities most likely to be used in an actual compromise and should be patched ahead of everything else.",
+        "shortDesc": "Remediate CRITICAL Inspector findings",
+        "criticality": "H",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Understanding findings]<https://docs.aws.amazon.com/inspector/latest/user/findings-understanding.html>",
+            "[Managing findings]<https://docs.aws.amazon.com/inspector/latest/user/findings-managing.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/inspector/latest/user/findings-understanding.html"
+    },
+    "inspectorExploitableFindings": {
+        "category": "S",
+        "^description": "{$COUNT} region(s) have findings for which a public exploit is known to exist. A vulnerability that is both exploitable in the wild and fixable is the highest-priority patching class there is: the attacker's work is already done and published, so the only thing standing between the account and compromise is applying the available update.",
+        "shortDesc": "Prioritise findings with a known exploit",
+        "criticality": "H",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Vulnerability intelligence]<https://docs.aws.amazon.com/inspector/latest/user/findings-understanding.html>",
+            "[Findings detail]<https://docs.aws.amazon.com/inspector/latest/user/findings-managing.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/inspector/latest/user/findings-understanding.html"
+    },
+    "inspectorFixAvailableNotApplied": {
+        "category": "S",
+        "^description": "{$COUNT} region(s) have a large share of findings that have a fix available which has not been applied. These vulnerabilities are patchable today \u2014 the vendor has shipped an update \u2014 and persist only because the update has not been rolled out. They represent the most tractable part of the vulnerability backlog and the fastest risk reduction available.",
+        "shortDesc": "Apply available fixes for Inspector findings",
+        "criticality": "M",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Remediating findings]<https://docs.aws.amazon.com/inspector/latest/user/remediating-findings.html>",
+            "[Managing findings]<https://docs.aws.amazon.com/inspector/latest/user/findings-managing.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/inspector/latest/user/remediating-findings.html"
+    }
+}

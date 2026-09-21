@@ -17,83 +17,108 @@ class Ec2ElbCommon(Evaluator):
         self._resourceName = elb['LoadBalancerArn']
 
         self.init()
-    
-    # checks    
+
+    # checks
     def _checkListenerPortEncrypt(self):
         arn = self.elb['LoadBalancerArn']
         result = self.elbClient.describe_listeners(
             LoadBalancerArn = arn
         )
-        
+
         listeners = result['Listeners']
         for listener in listeners:
             if listener['Port'] in Ec2SecGroup.NONENCRYPT_PORT:
                 self.results['ELBListenerInsecure'] = [-1, listener['Port']]
-        
+
         return
-    
+
     def _checkSecurityGroupNo(self):
         elb = self.elb
-        
+
         if 'SecurityGroups' in elb and len(elb['SecurityGroups']) > 50:
             self.results['ELBListenerInsecure'] = [-1, len(elb['SecurityGroups'])]
-            
+
         return
-    
+
     def _checkCrossZoneLB(self):
         elb = self.elb
         arn = elb['LoadBalancerArn']
-        
+
         results = self.elbClient.describe_load_balancer_attributes(
             LoadBalancerArn = arn
         )
-        
-        
+
+
         for attr in results['Attributes']:
             if attr['Key'] == 'load_balancing.cross_zone.enabled' and attr['Value'] == 'false':
                 self.results['ELBCrossZone'] = [-1, 'Disabled']
-        
+
         return
-    
+
     def _checkWAFEnabled(self):
         if self.elb['Type'] != 'application':
             return
-        
+
         wafv2Client = self.wafv2Client
         arn = self.elb['LoadBalancerArn']
-        
+
         results = wafv2Client.get_web_acl_for_resource(
             ResourceArn = arn
         )
-        
+
         if 'WebACL' not in results:
             self.results['ELBEnableWAF'] = [-1, 'Disabled']
-        
+
         return
-    
+
     def _checkALBSGPortMatch(self):
         ## NLB not supported
         if self.elb['Type'] != 'application':
             return
-        
+
         arn = self.elb['LoadBalancerArn']
         results = self.elbClient.describe_listeners(
             LoadBalancerArn = arn
         )
-        
+
         portList = []
         for listener in results.get('Listeners'):
             portList.append(listener.get('Port'))
-            
+
         unmatchPortList = portList
-        
+
         flaggedSGs = []
         for group in self.sgList:
             for perm in group.get('IpPermissions'):
                 if perm.get('FromPort') != perm.get('ToPort') or perm.get('FromPort') not in portList:
                     flaggedSGs.append(group.get('GroupId'))
-        
+
         if len(flaggedSGs) > 0:
             self.results['ELBSGRulesMatch'] = [-1, ', '.join(flaggedSGs)]
-        
+
+        return
+
+    def _checkELBMultiAZ(self):
+        """Check if load balancer is configured with multiple availability zones"""
+        elb = self.elb
+
+        # Get availability zones for the load balancer
+        availabilityZones = elb.get('AvailabilityZones', [])
+
+        # Count unique AZs
+        uniqueAZs = set()
+        for az in availabilityZones:
+            if isinstance(az, dict):
+                # For ALB/NLB, AvailabilityZones is a list of dicts with 'ZoneName'
+                zoneName = az.get('ZoneName')
+                if zoneName:
+                    uniqueAZs.add(zoneName)
+            else:
+                # For Classic LB, it might be a simple list
+                uniqueAZs.add(az)
+
+        # Flag if fewer than 2 AZs
+        if len(uniqueAZs) < 2:
+            self.results['ELBMultiAZ'] = [-1, f"{len(uniqueAZs)} AZ"]
+
         return

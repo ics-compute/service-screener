@@ -1,0 +1,138 @@
+{
+    "shubNotEnabled": {
+        "category": "S",
+        "^description": "{$COUNT} region(s) do not have Security Hub enabled. Security Hub is the service that runs the CIS and AWS Foundational Security Best Practices standards and aggregates findings from GuardDuty, Inspector, Macie and partner tools into one place. Without it, each of those signals lives in its own console and no single view of the account's security posture exists.",
+        "shortDesc": "Enable AWS Security Hub",
+        "criticality": "H",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 1,
+        "needFullTest": 0,
+        "ref": [
+            "[What is Security Hub]<https://docs.aws.amazon.com/securityhub/latest/userguide/what-is-securityhub.html>",
+            "[Setting up Security Hub]<https://docs.aws.amazon.com/securityhub/latest/userguide/securityhub-settingup.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/securityhub/latest/userguide/what-is-securityhub.html"
+    },
+    "shubNoStandardsEnabled": {
+        "category": "S",
+        "^description": "{$COUNT} region(s) have Security Hub enabled with no security standard turned on. The standards (CIS, FSBP, PCI DSS) are what actually evaluate resources against controls; with none enabled the hub aggregates third-party findings but performs no checks of its own, which is most of the value.",
+        "shortDesc": "Enable at least one security standard",
+        "criticality": "H",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Security standards]<https://docs.aws.amazon.com/securityhub/latest/userguide/standards-reference.html>",
+            "[Enabling standards]<https://docs.aws.amazon.com/securityhub/latest/userguide/set-standards.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/securityhub/latest/userguide/standards-reference.html"
+    },
+    "shubCISStandardDisabled": {
+        "category": "S",
+        "^description": "{$COUNT} region(s) run Security Hub without any CIS AWS Foundations Benchmark standard. CIS is the most commonly required baseline in AWS audits and certifications; when it is not enabled, the account cannot demonstrate CIS compliance from Security Hub and the CIS-specific controls are not evaluated.",
+        "shortDesc": "Enable the CIS AWS Foundations Benchmark",
+        "criticality": "M",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[CIS AWS Foundations Benchmark]<https://docs.aws.amazon.com/securityhub/latest/userguide/cis-aws-foundations-benchmark.html>",
+            "[Enabling standards]<https://docs.aws.amazon.com/securityhub/latest/userguide/set-standards.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/securityhub/latest/userguide/cis-aws-foundations-benchmark.html"
+    },
+    "shubAutoEnableControlsDisabled": {
+        "category": "S",
+        "^description": "{$COUNT} region(s) have AutoEnableControls off. When AWS releases a control for a newly supported service, it is not evaluated until someone enables it by hand. Coverage therefore drifts behind the services actually in use, and the gap is invisible because the hub still reports green on everything it does check.",
+        "shortDesc": "Enable auto-enable for new controls",
+        "criticality": "M",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Auto-enabling controls]<https://docs.aws.amazon.com/securityhub/latest/userguide/controls-auto-enable.html>",
+            "[Managing controls]<https://docs.aws.amazon.com/securityhub/latest/userguide/controls-manage.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/securityhub/latest/userguide/controls-auto-enable.html"
+    },
+    "shubLegacyControlFindingGenerator": {
+        "category": "O",
+        "^description": "{$COUNT} region(s) use the legacy STANDARD_CONTROL finding generator instead of consolidated control findings (SECURITY_CONTROL). In legacy mode a single control that belongs to several standards produces a separate finding under each one, multiplying finding volume, ingestion cost and the noise a responder wades through. Consolidated mode produces one finding per control regardless of how many standards reference it.",
+        "shortDesc": "Enable consolidated control findings",
+        "criticality": "M",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Consolidated control findings]<https://docs.aws.amazon.com/securityhub/latest/userguide/controls-findings-create-update.html>",
+            "[Finding generator]<https://docs.aws.amazon.com/securityhub/latest/userguide/finding-aggregation.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/securityhub/latest/userguide/controls-findings-create-update.html"
+    },
+    "shubFindingAggregatorMissing": {
+        "category": "O",
+        "^description": "{$COUNT} region(s) have no Security Hub finding aggregator, so findings stay siloed per region. Without aggregation there is no single region from which to view the whole account's posture, and a region nobody routinely opens accumulates unreviewed findings indefinitely.",
+        "shortDesc": "Configure cross-region finding aggregation",
+        "criticality": "M",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Cross-Region aggregation]<https://docs.aws.amazon.com/securityhub/latest/userguide/finding-aggregation.html>",
+            "[Enabling aggregation]<https://docs.aws.amazon.com/securityhub/latest/userguide/finding-aggregation-enable.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/securityhub/latest/userguide/finding-aggregation.html"
+    },
+    "shubIntegrationsMissing": {
+        "category": "O",
+        "^description": "{$COUNT} region(s) have fewer than three product integrations importing findings into Security Hub. The hub's value is proportional to how many signal sources it aggregates \u2014 GuardDuty, Inspector, Macie, IAM Access Analyzer and partner tools. With few integrations it is a near-empty pane rather than the single view it is meant to be.",
+        "shortDesc": "Enable more Security Hub product integrations",
+        "criticality": "L",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Product integrations]<https://docs.aws.amazon.com/securityhub/latest/userguide/securityhub-internal-providers.html>",
+            "[Available integrations]<https://docs.aws.amazon.com/securityhub/latest/userguide/securityhub-partner-providers.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/securityhub/latest/userguide/securityhub-internal-providers.html"
+    },
+    "shubUnprocessedFindings": {
+        "category": "O",
+        "^description": "{$COUNT} region(s) have a large backlog of findings still in the NEW workflow state. A backlog means findings are arriving faster than they are being reviewed, so the queue stops being read \u2014 and a genuinely serious finding is then indistinguishable from the hundreds nobody has looked at. Move triaged findings to NOTIFIED, SUPPRESSED or RESOLVED so NEW reflects only what still needs attention.",
+        "shortDesc": "Triage the backlog of NEW findings",
+        "criticality": "M",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Finding workflow status]<https://docs.aws.amazon.com/securityhub/latest/userguide/finding-workflow-status.html>",
+            "[Managing findings]<https://docs.aws.amazon.com/securityhub/latest/userguide/securityhub-findings-viewing.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/securityhub/latest/userguide/finding-workflow-status.html"
+    }
+}

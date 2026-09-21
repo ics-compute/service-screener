@@ -9,44 +9,367 @@
     },
     "mapping": {
         "Data Security and Privacy": {
-            "1.1": ["kms.KeyRotationEnabled", "kms.KeyInPendingDeletion"],
-            "1.2": ["s3.ServerSideEncrypted", "s3.SSEWithKMS", "ec2.EBSEncrypted", "rds.StorageEncrypted", "redshift.EncryptedAtRest", "opensearch.EncyptionAtRest"],
-            "1.3": ["s3.TlsEnforced", "apigateway.EncryptionInTransit", "opensearch.TLSEnforced", "opensearch.NodeToNodeEncryption", "redshift.EncryptedInTransit"],
-            "1.4": ["s3.PublicReadAccessBlock", "s3.PublicWriteAccessBlock", "s3.S3AccountPublicAccessBlock", "ec2.EBSSnapshotIsPublic", "rds.PubliclyAccessible", "rds.SnapshotRDSIsPublic", "redshift.PubliclyAccessible"],
-            "1.5": ["s3.BucketVersioning", "s3.BucketLogging"]
+            "1.1": [
+                "kms.KeyRotationEnabled",
+                "kms.KeyInPendingDeletion",
+                "kms.KeyPolicyWildcardAction",
+                "kms.KeyPolicyWildcardPrincipal",
+                "kms.KeyPolicySensitiveActionsNotRestricted",
+                "kms.KeyPolicyMissingRootAccess",
+                "kms.KeyPolicyNoConditions",
+                "kms.KeyPolicyCrossAccount",
+                "kms.GrantOverlyPermissive",
+                "kms.GrantWildcardPrincipal",
+                "kms.GrantMissingEncryptionContext",
+                "kms.KeyCentralizedManagement",
+                "cloudtrail.KMSPolicySourceArn",
+                "ssm.ssmParameterNoEncryptionCMK",
+                "secretsmanager.smNotEncryptedWithCMK",
+                "secretsmanager.smRotationNotEnabled",
+                "secretsmanager.smRotationOverdue",
+                "codebuild.cbEncryptionDefaultKey"
+            ],
+            "1.2": [
+                "s3.ServerSideEncrypted",
+                "s3.SSEWithKMS",
+                "ec2.EBSEncrypted",
+                "rds.StorageEncrypted",
+                "redshift.EncryptedAtRest",
+                "opensearch.EncyptionAtRest",
+                "ec2.EBSEncryptionByDefault",
+                "dynamodb.encryptionAtRest",
+                "eks.eksSecretsEncryptionNoKMS",
+                "efs.ComprehensiveSecurity",
+                "glue.MetadataEncryption",
+                "glue.ConnectionPasswordEncryption",
+                "glue.JobBookmarkEncryption",
+                "glue.JobS3Encryption",
+                "glue.JobCloudWatchLogsEncryption",
+                "sagemaker.EncryptionEnabled",
+                "sagemaker.VolumeAndOutputEncryption",
+                "s3.SSECBlocking",
+                "s3.BucketOwnerEnforced",
+                "bedrock.bedrockAgentNoEncryptionKey",
+                "bedrock.bedrockGuardrailNoEncryption",
+                "bedrock.bedrockKBNoEncryption",
+                "bedrock.bedrockACMemoryNoEncryption",
+                "stepfunctions.sfnEncryptionAtRest",
+                "sns.snsEncryptionAtRest",
+                "ssm.ssmParameterNotEncrypted",
+                "eventbridge.ebBusNoEncryption",
+                "config.configDeliveryChannelS3NotEncrypted",
+                "backup.backupRecoveryPointNotEncrypted",
+                "ecr.ecrEncryptionKms",
+                "kinesis.kinesisSSEDisabled",
+                "emr.emrEncryptionAtRestDisabled",
+                "emr.emrNoSecurityConfiguration",
+                "athena.athenaWorkgroupNotEncrypted",
+                "athena.athenaS3OutputNotEncrypted",
+                "athena.athenaMinimumEncryptionDisabled",
+                "codebuild.cbNoArtifactEncryption",
+                "codebuild.cbS3LogsNotEncrypted",
+                "codebuild.cbReportGroupExportNotEncrypted"
+            ],
+            "1.3": [
+                "s3.TlsEnforced",
+                "apigateway.EncryptionInTransit",
+                "opensearch.TLSEnforced",
+                "opensearch.NodeToNodeEncryption",
+                "redshift.EncryptedInTransit",
+                "efs.TLSRequired",
+                "cloudfront.OriginTrafficEncryption",
+                "glue.SslEnabled",
+                "sagemaker.InterContainerEncryption",
+                "apigateway.MutualTLS",
+                "eventbridge.ebApiDestinationHttpEndpoint",
+                "emr.emrEncryptionInTransitDisabled",
+                "codebuild.cbInsecureSSL"
+            ],
+            "1.4": [
+                "s3.PublicReadAccessBlock",
+                "s3.PublicWriteAccessBlock",
+                "s3.S3AccountPublicAccessBlock",
+                "ec2.EBSSnapshotIsPublic",
+                "rds.PubliclyAccessible",
+                "rds.SnapshotRDSIsPublic",
+                "redshift.PubliclyAccessible",
+                "s3.WildcardPrincipalsActions",
+                "s3.PublicAccessDocumentation",
+                "glue.PublicAccessibility",
+                "sagemaker.DirectInternetAccess",
+                "redshift.VpcDeployment",
+                "secretsmanager.smResourcePolicyPublicAccess",
+                "eventbridge.ebBusPublicPolicy",
+                "ecr.ecrRepoPublicAccess",
+                "emr.emrPubliclyAccessible",
+                "emr.emrBlockPublicAccessDisabled",
+                "codebuild.cbProjectVisibilityPublic"
+            ],
+            "1.5": [
+                "s3.BucketVersioning",
+                "s3.BucketLogging",
+                "s3.UnpredictableBucketNames"
+            ]
         },
         "Access Control": {
-            "2.1": ["iam.rootMfaActive", "iam.mfaActive"],
-            "2.2": ["iam.passwordPolicy", "iam.passwordPolicyWeak"],
-            "2.3": ["iam.FullAdminAccess", "iam.ManagedPolicyFullAccessOneServ"],
-            "2.4": ["iam.rootHasAccessKey"],
-            "2.5": ["iam.userNotUsingGroup", "iam.InlinePolicy"],
-            "2.6": ["iam.hasAccessKeyNoRotate90days", "iam.consoleLastAccess90"]
+            "2.1": [
+                "iam.rootMfaActive",
+                "iam.mfaActive",
+                "iam.iamUsersWithFederationAvailable",
+                "cognito.cognitoMfaNotEnforced",
+                "cognito.cognitoAdvancedSecurityNotEnforced",
+                "appsync.appsyncNoAuthentication",
+                "emr.emrKerberosNotEnabled"
+            ],
+            "2.2": [
+                "iam.passwordPolicy",
+                "iam.passwordPolicyWeak",
+                "cognito.cognitoWeakPasswordPolicy"
+            ],
+            "2.3": [
+                "iam.FullAdminAccess",
+                "iam.ManagedPolicyFullAccessOneServ",
+                "iam.wildcardActionsDetection",
+                "iam.missingPolicyConditions",
+                "iam.missingPermissionsBoundaries",
+                "lambda.lambdaRoleTooPermissive",
+                "sqs.WildcardPrincipalDetection",
+                "bedrock.bedrockAgentIamRoleOverprivileged",
+                "bedrock.bedrockKBRoleOverprivileged",
+                "bedrock.bedrockACRuntimeWildcardRole",
+                "stepfunctions.sfnRoleOverprivileged",
+                "accessanalyzer.aaNoAnalyzerConfigured",
+                "accessanalyzer.aaNoAccountAnalyzer",
+                "accessanalyzer.aaAnalyzerNotActive",
+                "accessanalyzer.aaUnresolvedExternalAccess"
+            ],
+            "2.4": [
+                "iam.rootHasAccessKey"
+            ],
+            "2.5": [
+                "iam.userNotUsingGroup",
+                "iam.InlinePolicy",
+                "iam.scpBestPractices"
+            ],
+            "2.6": [
+                "iam.hasAccessKeyNoRotate90days",
+                "iam.consoleLastAccess90",
+                "iam.unusedCustomerManagedPolicy",
+                "iam.unnecessaryCustomPolicies",
+                "kms.GrantOldAge",
+                "kms.GrantDuplicate",
+                "kms.KeyUnused",
+                "secretsmanager.smNotUsedRecently",
+                "secretsmanager.smLastChangedOld",
+                "accessanalyzer.aaUnusedAccessAnalyzerMissing",
+                "codebuild.cbPlaintextCredentialsInEnvVars",
+                "codebuild.cbSourceUrlCredentials"
+            ]
         },
         "Monitoring and Logging": {
-            "3.1": ["cloudtrail.NeedToEnableCloudTrail", "cloudtrail.EnableCloudTrailLogging", "cloudtrail.HasOneMultiRegionTrail", "cloudtrail.LogFileValidationEnabled", "cloudtrail.RequiresKmsKey"],
-            "3.2": ["cloudtrail.CloudWatchLogsLogGroupArn", "cloudwatch.SetRetentionDays"],
-            "3.3": ["ec2.VPCFlowLogEnabled"],
-            "3.4": ["apigateway.ExecutionLogging", "redshift.AuditLogging", "opensearch.ApplicationLogs"],
-            "3.5": ["iam.enableGuardDuty"]
+            "3.1": [
+                "cloudtrail.NeedToEnableCloudTrail",
+                "cloudtrail.EnableCloudTrailLogging",
+                "cloudtrail.HasOneMultiRegionTrail",
+                "cloudtrail.LogFileValidationEnabled",
+                "cloudtrail.RequiresKmsKey",
+                "cloudtrail.OrganizationTrailEnabled",
+                "cloudtrail.CloudWatchAlarmsConfigured",
+                "cloudtrail.IAMFullAccessRestriction",
+                "config.configRecorderNotEnabled",
+                "config.configRecorderNotAllResources",
+                "config.configRecorderLastStatusFailed",
+                "config.configDeliveryChannelMissing",
+                "securityhub.shubNotEnabled",
+                "securityhub.shubNoStandardsEnabled",
+                "securityhub.shubCISStandardDisabled",
+                "securityhub.shubAutoEnableControlsDisabled",
+                "cloudformation.cfnDriftDetected",
+                "cloudformation.cfnDriftNeverChecked",
+                "cloudformation.cfnStackPolicyMissing"
+            ],
+            "3.2": [
+                "cloudtrail.CloudWatchLogsLogGroupArn",
+                "cloudwatch.SetRetentionDays",
+                "cloudwatch.alarmsWithoutSNS",
+                "cloudwatch.missingServiceQuotaAlarms",
+                "cloudwatch.missingCompositeAlarms",
+                "cloudwatch.missingCloudWatchDashboards",
+                "cloudwatch.missingCustomMetrics",
+                "config.configDeliveryChannelSNSMissing",
+                "config.configNoRetentionPolicy",
+                "ssm.ssmSessionManagerNoCloudWatchLogs",
+                "ssm.ssmSessionManagerNoS3Logs"
+            ],
+            "3.3": [
+                "ec2.VPCFlowLogEnabled"
+            ],
+            "3.4": [
+                "apigateway.ExecutionLogging",
+                "redshift.AuditLogging",
+                "opensearch.ApplicationLogs",
+                "eks.eksClusterLoggingIncomplete",
+                "glue.JobLoggingEnabled",
+                "opensearch.CloudWatchAlarms",
+                "lambda.lambdaNoCloudWatchAlarms",
+                "rds.EventSubscriptionNotConfigured",
+                "redshift.EventNotifications",
+                "apigateway.CloudWatchAlarms",
+                "apigateway.PerformanceMonitoring",
+                "s3.CloudWatchRequestMetrics",
+                "bedrock.bedrockModelInvocationLoggingDisabled",
+                "bedrock.bedrockModelInvocationNoCloudWatch",
+                "bedrock.bedrockModelInvocationNoS3",
+                "stepfunctions.sfnLoggingDisabled",
+                "stepfunctions.sfnTracingDisabled",
+                "sns.snsDeliveryStatusLoggingDisabled",
+                "route53.route53QueryLoggingNotEnabled",
+                "emr.emrLoggingDisabled",
+                "codebuild.cbLogsDisabled",
+                "appsync.appsyncFieldLevelLogging",
+                "appsync.appsyncCloudWatchLogsNotEnabled"
+            ],
+            "3.5": [
+                "iam.enableGuardDuty",
+                "cloudtrail.GuardDutyIntegration",
+                "cloudtrail.SecurityHubIntegration",
+                "lambda.lambdaGuardDutyProtectionDisabled",
+                "guardduty.S3ProtectionDisabled",
+                "guardduty.EksAuditLogsDisabled",
+                "guardduty.RdsProtectionDisabled",
+                "guardduty.LambdaProtectionDisabled",
+                "guardduty.RuntimeMonitoringDisabled",
+                "guardduty.MalwareProtectionDisabled",
+                "inspector.inspectorNotEnabled",
+                "inspector.inspectorCriticalFindings",
+                "inspector.inspectorExploitableFindings",
+                "securityhub.shubFindingAggregatorMissing",
+                "inspector.inspectorEc2ScanningDisabled",
+                "inspector.inspectorEcrScanningDisabled",
+                "inspector.inspectorLambdaScanningDisabled",
+                "inspector.inspectorCoverageGap",
+                "inspector.inspectorFixAvailableNotApplied",
+                "emr.emrOldRelease",
+                "codebuild.cbImageOutdated",
+                "codebuild.cbPrivilegedMode"
+            ]
         },
         "Network Security": {
-            "4.1": ["ec2.SGDefaultInUsed", "ec2.SGSensitivePortOpenToAll", "ec2.SGAllTCPOpen", "ec2.SGAllUDPOpen", "ec2.SGAllPortOpen", "ec2.SGAllPortOpenToAll"],
-            "4.2": ["ec2.EC2SubnetAutoPublicIP", "ec2.EC2InstancePublicIP"],
-            "4.3": ["opensearch.DomainWithinVPC", "redshift.EnhancedVpcRouting"],
-            "4.4": ["apigateway.WAFWACL", "ec2.ELBEnableWAF"]
+            "4.1": [
+                "ec2.SGDefaultInUsed",
+                "ec2.SGSensitivePortOpenToAll",
+                "ec2.SGAllTCPOpen",
+                "ec2.SGAllUDPOpen",
+                "ec2.SGAllPortOpen",
+                "ec2.SGAllPortOpenToAll",
+                "efs.MountTargetSecurityGroups",
+                "redshift.SecurityGroups",
+                "apigateway.VPCAccessRestrictions"
+            ],
+            "4.2": [
+                "ec2.EC2SubnetAutoPublicIP",
+                "ec2.EC2InstancePublicIP",
+                "apigateway.PrivateAPI",
+                "apigateway.VPCEndpointAssociation",
+                "sagemaker.DirectInternetAccess",
+                "redshift.VpcDeployment",
+                "glue.PublicAccessibility"
+            ],
+            "4.3": [
+                "opensearch.DomainWithinVPC",
+                "redshift.EnhancedVpcRouting",
+                "sagemaker.NotebookVpcSettings",
+                "sagemaker.ModelVpcSettings",
+                "sagemaker.TrainingVpcSettings",
+                "sagemaker.NetworkIsolation",
+                "sagemaker.TrainingNetworkIsolation",
+                "bedrock.bedrockACRuntimeNoVPC"
+            ],
+            "4.4": [
+                "apigateway.WAFWACL",
+                "ec2.ELBEnableWAF",
+                "apigateway.ResourcePolicy",
+                "apigateway.RequestThrottling",
+                "apigateway.RequestValidation",
+                "wafv2.wafv2NoRules",
+                "wafv2.wafv2NoManagedRuleGroups",
+                "wafv2.wafv2NoRateBasedRules",
+                "wafv2.wafv2RulesInCountMode",
+                "appsync.appsyncWafNotAssociated",
+                "appsync.appsyncIntrospectionEnabled"
+            ]
         },
         "Resilience and Business Continuity": {
-            "5.1": ["rds.MultiAZ", "ec2.ELBCrossZone", "ec2.ASGELBHealthCheckEnabled"],
-            "5.2": ["rds.Backup", "dynamodb.disabledPointInTimeRecovery", "efs.AutomatedBackup", "redshift.AutomaticSnapshots"],
-            "5.3": ["rds.DeleteProtection"],
-            "5.4": ["dynamodb.autoScalingStatus", "lambda.lambdaReservedConcurrencyDisabled"]
+            "5.1": [
+                "rds.MultiAZ",
+                "ec2.ELBCrossZone",
+                "ec2.ASGELBHealthCheckEnabled",
+                "ec2.ASGMultiAZ",
+                "ec2.ELBMultiAZ",
+                "ec2.VPCMultiAZ",
+                "elasticache.MultiAZEnabled",
+                "eks.eksNodeGroupSingleAZ",
+                "sagemaker.ProductionVariantInstanceCount"
+            ],
+            "5.2": [
+                "rds.Backup",
+                "dynamodb.disabledPointInTimeRecovery",
+                "efs.AutomatedBackup",
+                "redshift.AutomaticSnapshots",
+                "elasticache.BackupEnabled",
+                "rds.CrossRegionBackupNotEnabled",
+                "efs.ReplicationEnabled",
+                "elasticache.GlobalDatastoreConfig",
+                "ec2.EBSSnapshotFirstArchived",
+                "ec2.EBSSnapshotLatestArchived",
+                "backup.backupNoPlanExists",
+                "backup.backupPlanNotAssigned",
+                "backup.backupCriticalResourcesUnprotected",
+                "backup.backupPlanNoCrossRegionCopy",
+                "secretsmanager.smReplicationNotConfigured",
+                "eventbridge.ebArchiveNotConfigured"
+            ],
+            "5.3": [
+                "rds.DeleteProtection",
+                "emr.emrTerminationProtectionDisabled",
+                "cloudformation.cfnTerminationProtectionDisabled",
+                "cloudformation.cfnRollbackFailed"
+            ],
+            "5.4": [
+                "dynamodb.autoScalingStatus",
+                "lambda.lambdaReservedConcurrencyDisabled",
+                "eks.eksNoAutoscaling",
+                "eks.eksNoKarpenter",
+                "ec2.ASGTargetTrackingPolicy",
+                "ec2.ASGScalingCooldowns",
+                "sagemaker.EndpointAutoScalingConfigured"
+            ]
         },
         "Compliance and Governance": {
-            "6.1": ["iam.hasOrganization"],
-            "6.2": ["cloudtrail.EnableTrailS3BucketLogging"],
-            "6.3": ["ec2.EC2DetailedMonitor", "rds.EnhancedMonitor"],
-            "6.4": ["redshift.AutomaticUpgrades"]
+            "6.1": [
+                "iam.hasOrganization",
+                "iam.scpBestPractices"
+            ],
+            "6.2": [
+                "cloudtrail.EnableTrailS3BucketLogging",
+                "cloudtrail.OrganizationTrailEnabled",
+                "backup.backupVaultNoLock",
+                "backup.backupVaultLockNotFinalized",
+                "ecr.ecrTagImmutability"
+            ],
+            "6.3": [
+                "ec2.EC2DetailedMonitor",
+                "rds.EnhancedMonitor",
+                "cloudwatch.missingXRayIntegration",
+                "cloudwatch.missingApplicationSignals",
+                "rds.RDSRecommendationsActive",
+                "redshift.AdvisorRecommendations"
+            ],
+            "6.4": [
+                "redshift.AutomaticUpgrades",
+                "dynamodb.globalTableVersion",
+                "eks.eksAutoModeNotEnabled"
+            ]
         }
     }
 }

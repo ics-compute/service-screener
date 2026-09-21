@@ -1,0 +1,138 @@
+{
+    "aaNoAnalyzerConfigured": {
+        "category": "S",
+        "^description": "{$COUNT} region(s) have no IAM Access Analyzer analyzer. Access Analyzer uses provable-security reasoning to identify resources \u2014 S3 buckets, IAM roles, KMS keys, Lambda functions, SQS queues and more \u2014 whose policies grant access to an external principal. Without an analyzer, the only way to find an unintended cross-account grant is to read every resource policy by hand, which does not happen at scale, so over-broad grants accumulate unnoticed.",
+        "shortDesc": "Enable IAM Access Analyzer",
+        "criticality": "H",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[What is IAM Access Analyzer]<https://docs.aws.amazon.com/IAM/latest/UserGuide/access-analyzer.html>",
+            "[Security Hub control IAM.28]<https://docs.aws.amazon.com/securityhub/latest/userguide/iam-controls.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/IAM/latest/UserGuide/access-analyzer.html"
+    },
+    "aaNoAccountAnalyzer": {
+        "category": "S",
+        "^description": "{$COUNT} region(s) have analyzers but none of type ACCOUNT or ORGANIZATION. Only an external-access analyzer detects access granted outside the zone of trust; unused-access and internal-access analyzers answer different questions. Without one, external access findings are simply not generated.",
+        "shortDesc": "Create an external-access analyzer",
+        "criticality": "H",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Access Analyzer findings]<https://docs.aws.amazon.com/IAM/latest/UserGuide/access-analyzer-findings.html>",
+            "[Analyzer types]<https://docs.aws.amazon.com/IAM/latest/UserGuide/access-analyzer-getting-started.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/IAM/latest/UserGuide/access-analyzer-findings.html"
+    },
+    "aaUnusedAccessAnalyzerMissing": {
+        "category": "S",
+        "^description": "{$COUNT} region(s) have no unused-access analyzer. An unused-access analyzer continuously surfaces IAM roles that have not been used, access keys that are idle, and permissions that are granted but never exercised \u2014 the raw material for least-privilege remediation. Without it, unused access is invisible and privileges only ever accumulate.",
+        "shortDesc": "Create an unused-access analyzer",
+        "criticality": "M",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Unused access analysis]<https://docs.aws.amazon.com/IAM/latest/UserGuide/access-analyzer-unused-access.html>",
+            "[Analyzer types]<https://docs.aws.amazon.com/IAM/latest/UserGuide/access-analyzer-getting-started.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/IAM/latest/UserGuide/access-analyzer-unused-access.html"
+    },
+    "aaNoInternalAccessAnalyzer": {
+        "category": "S",
+        "^description": "{$COUNT} region(s) have no internal-access analyzer. This newer analyzer type reports which principals inside the account can reach designated critical resources, which supports segmentation review within a single account. It is a defence-in-depth addition rather than a baseline requirement, so this is advisory.",
+        "shortDesc": "Consider an internal-access analyzer",
+        "criticality": "L",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Internal access analysis]<https://docs.aws.amazon.com/IAM/latest/UserGuide/access-analyzer-internal-access.html>",
+            "[Analyzer types]<https://docs.aws.amazon.com/IAM/latest/UserGuide/access-analyzer-getting-started.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/IAM/latest/UserGuide/access-analyzer-internal-access.html"
+    },
+    "aaAnalyzerNotActive": {
+        "category": "R",
+        "^description": "{$COUNT} region(s) have an analyzer that is not in the ACTIVE state. An analyzer that is not active produces no findings, so the account appears to have Access Analyzer coverage while actually receiving none \u2014 worse than having no analyzer, because it creates false assurance.",
+        "shortDesc": "Restore analyzers to the ACTIVE state",
+        "criticality": "H",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Access Analyzer status]<https://docs.aws.amazon.com/IAM/latest/UserGuide/access-analyzer-findings.html>",
+            "[Managing analyzers]<https://docs.aws.amazon.com/IAM/latest/UserGuide/access-analyzer-getting-started.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/IAM/latest/UserGuide/access-analyzer-findings.html"
+    },
+    "aaUnresolvedExternalAccess": {
+        "category": "S",
+        "^description": "{$COUNT} region(s) have active external-access findings. Each finding is a resource whose policy grants access to a principal outside the account, and which has not been reviewed. Some are intended (a partner integration, a cross-account role); those should be confirmed and archived so the remaining findings are genuinely unexpected access that needs remediation.",
+        "shortDesc": "Review and resolve external-access findings",
+        "criticality": "H",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Working with findings]<https://docs.aws.amazon.com/IAM/latest/UserGuide/access-analyzer-findings.html>",
+            "[Resolving findings]<https://docs.aws.amazon.com/IAM/latest/UserGuide/access-analyzer-resolving-findings.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/IAM/latest/UserGuide/access-analyzer-findings.html"
+    },
+    "aaNoArchiveRules": {
+        "category": "O",
+        "^description": "{$COUNT} region(s) have an active external-access analyzer but no archive rules. Archive rules automatically archive findings that match an intended, reviewed access pattern, so that expected cross-account grants do not reappear as noise on every scan. Without them, real findings are buried among the known-good ones and reviewer fatigue sets in.",
+        "shortDesc": "Add archive rules for known-good findings",
+        "criticality": "L",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Archive rules]<https://docs.aws.amazon.com/IAM/latest/UserGuide/access-analyzer-archive-rules.html>",
+            "[Working with findings]<https://docs.aws.amazon.com/IAM/latest/UserGuide/access-analyzer-findings.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/IAM/latest/UserGuide/access-analyzer-archive-rules.html"
+    },
+    "aaNoOrganizationAnalyzer": {
+        "category": "O",
+        "^description": "{$COUNT} region(s) have no organization-level analyzer. For the delegated administrator of an AWS Organization, an ORGANIZATION analyzer provides a single external-access view across every member account, which is far more reliable than per-account analyzers maintained separately. A standalone account does not need one, so this is advisory.",
+        "shortDesc": "Consider an organization analyzer",
+        "criticality": "L",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Organization analyzers]<https://docs.aws.amazon.com/IAM/latest/UserGuide/access-analyzer-getting-started.html>",
+            "[Delegated administrator]<https://docs.aws.amazon.com/IAM/latest/UserGuide/access-analyzer-settings.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/IAM/latest/UserGuide/access-analyzer-getting-started.html"
+    }
+}

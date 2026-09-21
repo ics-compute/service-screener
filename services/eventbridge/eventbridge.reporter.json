@@ -1,0 +1,240 @@
+{
+  "ebBusNoEncryption": {
+    "category": "S",
+    "^description": "{$COUNT} event bus(es) have no customer managed KMS key configured, so events at rest are encrypted with an AWS-owned key. An AWS-owned key cannot be audited through CloudTrail key usage events, cannot be rotated on a schedule the account controls, and cannot be revoked to cut off access to already-stored events. Event payloads routinely carry order details, personal data and internal identifiers, so the account should own the key that protects them.",
+    "shortDesc": "Encrypt the event bus with a customer managed KMS key",
+    "criticality": "M",
+    "downtime": 0,
+    "slowness": 0,
+    "additionalCost": 1,
+    "needFullTest": 0,
+    "ref": [
+      "[Data protection in Amazon EventBridge]<https://docs.aws.amazon.com/eventbridge/latest/userguide/encryption-at-rest.html>",
+      "[Customer managed keys for event buses]<https://docs.aws.amazon.com/eventbridge/latest/userguide/encryption-at-rest-cmkes.html>"
+    ],
+    "remediation": null,
+    "remediation_risk": null,
+    "remediation_doc": "https://docs.aws.amazon.com/eventbridge/latest/userguide/encryption-at-rest-cmkes.html"
+  },
+  "ebBusPublicPolicy": {
+    "category": "S",
+    "^description": "{$COUNT} event bus(es) have a resource policy that allows Principal \"*\" with no condition scoping the caller. Any AWS account can then put events onto the bus, letting an outsider inject events that trigger the rules behind it — invoking Lambda functions, starting Step Functions executions or writing to queues on the account's behalf. A cross-account bus should always scope the wildcard with aws:PrincipalOrgID or an explicit account list.",
+    "shortDesc": "Remove unconditional wildcard access from the event bus policy",
+    "criticality": "H",
+    "downtime": 0,
+    "slowness": 0,
+    "additionalCost": 0,
+    "needFullTest": 1,
+    "ref": [
+      "[Permissions for event buses]<https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-event-bus-perms.html>",
+      "[Sending and receiving events between accounts]<https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-cross-account.html>"
+    ],
+    "remediation": null,
+    "remediation_risk": null,
+    "remediation_doc": "https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-event-bus-perms.html"
+  },
+  "ebBusNoTags": {
+    "category": "O",
+    "^description": "{$COUNT} custom event bus(es) carry no tags. Without tags the bus cannot be attributed to an owning team, environment or cost centre, which makes cost allocation reports incomplete and leaves nobody identifiable when the bus starts misbehaving. Tag-based IAM conditions and automated governance also cannot target the resource.",
+    "shortDesc": "Tag the event bus with owner and environment",
+    "criticality": "L",
+    "downtime": 0,
+    "slowness": 0,
+    "additionalCost": 0,
+    "needFullTest": 0,
+    "ref": [
+      "[Tagging Amazon EventBridge resources]<https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-tagging.html>",
+      "[Tagging AWS resources]<https://docs.aws.amazon.com/tag-editor/latest/userguide/tagging.html>"
+    ],
+    "remediation": null,
+    "remediation_risk": null,
+    "remediation_doc": "https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-tagging.html"
+  },
+  "ebRuleTargetCrossAccountNoCondition": {
+    "category": "S",
+    "^description": "{$COUNT} event bus(es) have rules whose targets sit in a different AWS account while the bus policy carries no condition scoping access. The cross-account trust relationship is then undocumented in the resource itself: nothing in the bus policy records which accounts are expected, so an over-broad grant added later is indistinguishable from the intended configuration. Scope the bus policy with aws:PrincipalOrgID, aws:SourceAccount or an explicit principal list.",
+    "shortDesc": "Scope the bus policy when rules target another account",
+    "criticality": "M",
+    "downtime": 0,
+    "slowness": 0,
+    "additionalCost": 0,
+    "needFullTest": 1,
+    "ref": [
+      "[Sending and receiving events between accounts]<https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-cross-account.html>",
+      "[Using condition keys to limit access]<https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_condition-keys.html>"
+    ],
+    "remediation": null,
+    "remediation_risk": null,
+    "remediation_doc": "https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-cross-account.html"
+  },
+  "ebRuleDisabled": {
+    "category": "O",
+    "^description": "{$COUNT} rule(s) are in the DISABLED state. A disabled rule matches no events, so whatever it was created to trigger silently never runs — a scheduled backup, an alerting path or a compliance workflow can be dormant for months without any error surfacing. Either re-enable the rule or delete it, so that the configuration reflects what is actually intended to run.",
+    "shortDesc": "Re-enable or delete the disabled rule",
+    "criticality": "L",
+    "downtime": 0,
+    "slowness": 0,
+    "additionalCost": 0,
+    "needFullTest": 1,
+    "ref": [
+      "[Disabling and enabling rules]<https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-rules.html>",
+      "[Amazon EventBridge rules]<https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-rules.html>"
+    ],
+    "remediation": null,
+    "remediation_risk": null,
+    "remediation_doc": "https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-rules.html"
+  },
+  "ebRuleNoTargets": {
+    "category": "O",
+    "^description": "{$COUNT} rule(s) have no targets configured. EventBridge still evaluates every incoming event against the rule's pattern and then discards the match, so the rule consumes evaluation effort while doing nothing. This usually means a target was deleted without removing the rule, leaving an orphan that suggests a workflow exists when it does not.",
+    "shortDesc": "Add a target to the rule or delete it",
+    "criticality": "M",
+    "downtime": 0,
+    "slowness": 0,
+    "additionalCost": 0,
+    "needFullTest": 1,
+    "ref": [
+      "[Amazon EventBridge targets]<https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-targets.html>",
+      "[Adding targets to a rule]<https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-create-rule.html>"
+    ],
+    "remediation": null,
+    "remediation_risk": null,
+    "remediation_doc": "https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-targets.html"
+  },
+  "ebRuleNoDeadLetterQueue": {
+    "category": "R",
+    "^description": "{$COUNT} rule(s) have targets with no DeadLetterConfig. When EventBridge exhausts its retries against a failing target the event is dropped with no record of what was lost, so a downstream outage silently destroys data instead of parking it for reprocessing. Attaching an SQS dead letter queue turns an unrecoverable loss into a queue that can be drained once the target recovers.",
+    "shortDesc": "Attach a dead letter queue to the rule target",
+    "criticality": "M",
+    "downtime": 0,
+    "slowness": 0,
+    "additionalCost": 1,
+    "needFullTest": 0,
+    "ref": [
+      "[Event retry policy and using dead letter queues]<https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-rule-dlq.html>",
+      "[Amazon EventBridge targets]<https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-targets.html>"
+    ],
+    "remediation": null,
+    "remediation_risk": null,
+    "remediation_doc": "https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-rule-dlq.html"
+  },
+  "ebRuleNoRetryPolicy": {
+    "category": "R",
+    "^description": "{$COUNT} rule(s) have targets with no explicit RetryPolicy, so EventBridge applies its default of up to 185 attempts spread over 24 hours. A target that is failing hard is then retried for a full day, which prolongs an outage, amplifies load against the struggling dependency and delays the event reaching a dead letter queue where an operator would notice it. Set MaximumRetryAttempts and MaximumEventAgeInSeconds to values that match the workload.",
+    "shortDesc": "Set an explicit retry policy on the rule target",
+    "criticality": "L",
+    "downtime": 0,
+    "slowness": 0,
+    "additionalCost": 0,
+    "needFullTest": 0,
+    "ref": [
+      "[Event retry policy and using dead letter queues]<https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-rule-dlq.html>",
+      "[Amazon EventBridge targets]<https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-targets.html>"
+    ],
+    "remediation": null,
+    "remediation_risk": null,
+    "remediation_doc": "https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-rule-dlq.html"
+  },
+  "ebRuleNoDescription": {
+    "category": "O",
+    "^description": "{$COUNT} rule(s) have no description. The event pattern then becomes the only record of the rule's purpose, which forces anyone triaging an incident to reverse-engineer intent from a JSON matcher. An undescribed rule is also the one nobody is willing to delete during cleanup, because its purpose cannot be established.",
+    "shortDesc": "Add a description explaining the rule's purpose",
+    "criticality": "L",
+    "downtime": 0,
+    "slowness": 0,
+    "additionalCost": 0,
+    "needFullTest": 0,
+    "ref": [
+      "[Amazon EventBridge rules]<https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-rules.html>",
+      "[Creating a rule that reacts to events]<https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-create-rule.html>"
+    ],
+    "remediation": null,
+    "remediation_risk": null,
+    "remediation_doc": "https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-rules.html"
+  },
+  "ebArchiveNotConfigured": {
+    "category": "R",
+    "^description": "{$COUNT} region(s) have no enabled EventBridge archive. Delivered events are then not retained anywhere, so when a bug in a consumer corrupts or drops what it processed there is no way to replay the original events — the data is simply gone. An archive plus replay is the only mechanism EventBridge offers to recover from a downstream defect discovered after the fact.",
+    "shortDesc": "Create an event archive to enable replay",
+    "criticality": "L",
+    "downtime": 0,
+    "slowness": 0,
+    "additionalCost": 1,
+    "needFullTest": 0,
+    "ref": [
+      "[Archiving and replaying events]<https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-archive.html>",
+      "[Replaying archived events]<https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-archive-replay.html>"
+    ],
+    "remediation": null,
+    "remediation_risk": null,
+    "remediation_doc": "https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-archive.html"
+  },
+  "ebSchemaDiscoveryDisabled": {
+    "category": "O",
+    "^description": "{$COUNT} region(s) have no running EventBridge schema discoverer. Event schemas are therefore not catalogued, so consumers have no generated code bindings to compile against and no registry to diff when a producer changes a payload. Discovery turns an implicit contract, enforced only by whatever the consumer happens to parse, into a versioned artefact that breaks loudly at build time instead of silently at runtime.",
+    "shortDesc": "Enable EventBridge schema discovery on the event bus",
+    "criticality": "L",
+    "downtime": 0,
+    "slowness": 0,
+    "additionalCost": 1,
+    "needFullTest": 0,
+    "ref": [
+      "[EventBridge schemas]<https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-schema.html>",
+      "[Schema discovery]<https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-schema-discovery.html>"
+    ],
+    "remediation": null,
+    "remediation_risk": null,
+    "remediation_doc": "https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-schema-discovery.html"
+  },
+  "ebConnectionNoAuth": {
+    "category": "S",
+    "^description": "{$COUNT} region(s) have EventBridge connections that do not use a recognised authorization type. An API destination reached through such a connection sends event payloads to a third-party endpoint without proving who it is, so the receiving side cannot distinguish the account's events from anyone else's, and the endpoint itself is left open to anyone who learns its URL. Every connection should use BASIC, API_KEY or OAUTH_CLIENT_CREDENTIALS with the secret held in Secrets Manager.",
+    "shortDesc": "Configure authorization on the EventBridge connection",
+    "criticality": "M",
+    "downtime": 0,
+    "slowness": 0,
+    "additionalCost": 0,
+    "needFullTest": 1,
+    "ref": [
+      "[Connections for API destinations]<https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-api-destinations.html>",
+      "[Authorization for API destinations]<https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-api-destination-auth.html>"
+    ],
+    "remediation": null,
+    "remediation_risk": null,
+    "remediation_doc": "https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-api-destination-auth.html"
+  },
+  "ebApiDestinationHttpEndpoint": {
+    "category": "S",
+    "^description": "{$COUNT} region(s) have EventBridge API destinations whose InvocationEndpoint uses plaintext http://. Event payloads and the authorization header carrying the connection's credentials then cross the network unencrypted, so anyone positioned between EventBridge and the endpoint can read the data and replay the credential. Every API destination should invoke an https:// endpoint.",
+    "shortDesc": "Change the API destination endpoint to HTTPS",
+    "criticality": "M",
+    "downtime": 0,
+    "slowness": 0,
+    "additionalCost": 0,
+    "needFullTest": 1,
+    "ref": [
+      "[API destinations]<https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-api-destinations.html>",
+      "[Data protection in transit]<https://docs.aws.amazon.com/eventbridge/latest/userguide/data-protection.html>"
+    ],
+    "remediation": null,
+    "remediation_risk": null,
+    "remediation_doc": "https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-api-destinations.html"
+  },
+  "ebGlobalEndpointNoReplication": {
+    "category": "R",
+    "^description": "{$COUNT} region(s) have EventBridge global endpoints with event replication disabled. The endpoint can still fail traffic over to the secondary region, but events published shortly before the failover exist only in the primary region's bus, so they are not processed by the secondary until the primary recovers. Enabling replication is what makes the failover lossless rather than merely available.",
+    "shortDesc": "Enable event replication on the global endpoint",
+    "criticality": "L",
+    "downtime": 0,
+    "slowness": 0,
+    "additionalCost": 1,
+    "needFullTest": 0,
+    "ref": [
+      "[Global endpoints]<https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-global-endpoints.html>",
+      "[Event replication for global endpoints]<https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-global-endpoints.html>"
+    ],
+    "remediation": null,
+    "remediation_risk": null,
+    "remediation_doc": "https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-global-endpoints.html"
+  }
+}

@@ -10,7 +10,10 @@
 		"needFullTest": 1,
 		"ref": [
 			"[Prohibit public access]<https://docs.aws.amazon.com/securityhub/latest/userguide/redshift-controls.html#redshift-2>"
-		]
+		],
+		"remediation": "aws redshift modify-cluster --cluster-identifier {ResourceId} --no-publicly-accessible",
+		"remediation_risk": "high",
+		"remediation_doc": "https://docs.aws.amazon.com/securityhub/latest/userguide/redshift-controls.html#redshift-2"
 	},
 	"EncryptedInTransit": {
 		"category": "S",
@@ -23,21 +26,27 @@
 		"needFullTest": 1,
 		"ref": [
 			"[Encypt in Transit]<https://docs.aws.amazon.com/securityhub/latest/userguide/redshift-controls.html#redshift-2>"
-		]
+		],
+		"remediation": null,
+		"remediation_risk": null,
+		"remediation_doc": "https://docs.aws.amazon.com/securityhub/latest/userguide/redshift-controls.html#redshift-2"
 	},
 	"MaintenanceWindow": {
-        "category": "O",
-        "^description": "Configure maintenance windows during off-peak hours to minimize impact on your workloads. A well-planned maintenance window ensures system updates and patches are applied with minimal disruption to your operations.",
-        "shortDesc": "Configure maintenance window",
-        "criticality": "L",
-        "downtime": 0,
-        "slowness": 0,
-        "additionalCost": 0,
-        "needFullTest": 0,
-        "ref": [
-            "[Maintenance windows]<https://docs.aws.amazon.com/redshift/latest/mgmt/working-with-clusters.html#rs-maintenance-windows>"
-        ]
-    },
+		"category": "O",
+		"^description": "Configure maintenance windows during off-peak hours to minimize impact on your workloads. A well-planned maintenance window ensures system updates and patches are applied with minimal disruption to your operations.",
+		"shortDesc": "Configure maintenance window",
+		"criticality": "L",
+		"downtime": 0,
+		"slowness": 0,
+		"additionalCost": 0,
+		"needFullTest": 0,
+		"ref": [
+			"[Maintenance windows]<https://docs.aws.amazon.com/redshift/latest/mgmt/working-with-clusters.html#rs-maintenance-windows>"
+		],
+		"remediation": null,
+		"remediation_risk": null,
+		"remediation_doc": "https://docs.aws.amazon.com/redshift/latest/mgmt/working-with-clusters.html#rs-maintenance-windows"
+	},
 	"AutomaticSnapshots": {
 		"category": "R",
 		"^description": "Backups help you to recover more quickly from a security incident. They strengthen the resilience of your systems. Amazon Redshift takes periodic snapshots by default. Automatic snapshots should be enabled and retained for at least seven days.",
@@ -49,21 +58,27 @@
 		"needFullTest": 0,
 		"ref": [
 			"[Enable automatic snapshots]<https://docs.aws.amazon.com/securityhub/latest/userguide/redshift-controls.html#redshift-3>"
-		]
+		],
+		"remediation": null,
+		"remediation_risk": null,
+		"remediation_doc": "https://docs.aws.amazon.com/securityhub/latest/userguide/redshift-controls.html#redshift-3"
 	},
 	"CrossRegionSnapshots": {
-        "category": "R",
-        "^description": "Cross-region snapshot copying provides disaster recovery capabilities by maintaining backup copies in a different AWS Region. This helps ensure business continuity in case of regional failures.",
-        "shortDesc": "Enable cross-region snapshots",
-        "criticality": "H",
-        "downtime": 0,
-        "slowness": 0,
-        "additionalCost": 1,
-        "needFullTest": 0,
-        "ref": [
-            "[Copying snapshots to another region]<https://docs.aws.amazon.com/redshift/latest/mgmt/cross-region-snapshot-copy.html>"
-        ]
-    },
+		"category": "R",
+		"^description": "Cross-region snapshot copying provides disaster recovery capabilities by maintaining backup copies in a different AWS Region. This helps ensure business continuity in case of regional failures.",
+		"shortDesc": "Enable cross-region snapshots",
+		"criticality": "H",
+		"downtime": 0,
+		"slowness": 0,
+		"additionalCost": 1,
+		"needFullTest": 0,
+		"ref": [
+			"[Copying snapshots to another region]<https://docs.aws.amazon.com/redshift/latest/mgmt/cross-region-snapshot-copy.html>"
+		],
+		"remediation": null,
+		"remediation_risk": null,
+		"remediation_doc": "https://docs.aws.amazon.com/redshift/latest/mgmt/cross-region-snapshot-copy.html"
+	},
 	"AuditLogging": {
 		"category": "S",
 		"^description": "Amazon Redshift audit logging provides additional information about connections and user activities in your cluster. This data can be stored and secured in Amazon S3 and can be helpful in security audits and investigations.",
@@ -75,7 +90,10 @@
 		"needFullTest": 0,
 		"ref": [
 			"[Enable audit logging]<https://docs.aws.amazon.com/redshift/latest/mgmt/db-auditing-console.html>"
-		]
+		],
+		"remediation": null,
+		"remediation_risk": null,
+		"remediation_doc": "https://docs.aws.amazon.com/redshift/latest/mgmt/db-auditing-console.html"
 	},
 	"AutomaticUpgrades": {
 		"category": "SO",
@@ -88,7 +106,10 @@
 		"needFullTest": -1,
 		"ref": [
 			"[Enable automatic upgrades]<https://docs.aws.amazon.com/securityhub/latest/userguide/redshift-controls.html#redshift-6>"
-		]
+		],
+		"remediation": "aws redshift modify-cluster --cluster-identifier {ResourceId} --allow-version-upgrade",
+		"remediation_risk": "medium",
+		"remediation_doc": "https://docs.aws.amazon.com/securityhub/latest/userguide/redshift-controls.html#redshift-6"
 	},
 	"EnhancedVpcRouting": {
 		"category": "S",
@@ -101,7 +122,10 @@
 		"needFullTest": -1,
 		"ref": [
 			"[Enable enhanced VPC routing]<https://docs.aws.amazon.com/redshift/latest/mgmt/enhanced-vpc-enabling-cluster.html>"
-		]
+		],
+		"remediation": "aws redshift modify-cluster --cluster-identifier {ResourceId} --enhanced-vpc-routing",
+		"remediation_risk": "high",
+		"remediation_doc": "https://docs.aws.amazon.com/redshift/latest/mgmt/enhanced-vpc-enabling-cluster.html"
 	},
 	"DefaultAdminUsername": {
 		"category": "S",
@@ -114,7 +138,10 @@
 		"needFullTest": 1,
 		"ref": [
 			"[Create new cluster]<https://docs.aws.amazon.com/redshift/latest/gsg/rs-gsg-prereq.html>"
-		]
+		],
+		"remediation": null,
+		"remediation_risk": null,
+		"remediation_doc": "https://docs.aws.amazon.com/redshift/latest/gsg/rs-gsg-prereq.html"
 	},
 	"DefaultDatabaseName": {
 		"category": "S",
@@ -127,7 +154,10 @@
 		"needFullTest": 1,
 		"ref": [
 			"[Getting started with Amazon Redshift]<https://docs.aws.amazon.com/redshift/latest/gsg/getting-started.html>"
-		]
+		],
+		"remediation": null,
+		"remediation_risk": null,
+		"remediation_doc": "https://docs.aws.amazon.com/redshift/latest/gsg/getting-started.html"
 	},
 	"EncryptedAtRest": {
 		"category": "S",
@@ -140,7 +170,10 @@
 		"needFullTest": -1,
 		"ref": [
 			"[Changing cluster encryption]<https://docs.aws.amazon.com/redshift/latest/mgmt/changing-cluster-encryption.html>"
-		]
+		],
+		"remediation": "aws redshift modify-cluster --cluster-identifier {ResourceId} --encrypted",
+		"remediation_risk": "high",
+		"remediation_doc": "https://docs.aws.amazon.com/redshift/latest/mgmt/changing-cluster-encryption.html"
 	},
 	"EncryptedWithKMS": {
 		"category": "S",
@@ -153,7 +186,10 @@
 		"needFullTest": -1,
 		"ref": [
 			"[Database encryption for Amazon Redshift using AWS KMS]<https://docs.aws.amazon.com/redshift/latest/mgmt/working-with-db-encryption.html#working-with-aws-kms>"
-		]
+		],
+		"remediation": "aws redshift modify-cluster --cluster-identifier {ResourceId} --encrypted",
+		"remediation_risk": "high",
+		"remediation_doc": "https://docs.aws.amazon.com/redshift/latest/mgmt/working-with-db-encryption.html#working-with-aws-kms"
 	},
 	"ReservedNode": {
 		"category": "C",
@@ -167,7 +203,10 @@
 		"ref": [
 			"[Purchase Reserved nodes]<https://docs.aws.amazon.com/redshift/latest/mgmt/purchase-reserved-node-instance.html>",
 			"[Redshift Pricing]<https://aws.amazon.com/redshift/pricing>"
-		]
+		],
+		"remediation": null,
+		"remediation_risk": null,
+		"remediation_doc": "https://docs.aws.amazon.com/redshift/latest/mgmt/purchase-reserved-node-instance.html"
 	},
 	"UnderutilisedCluster": {
 		"category": "C",
@@ -180,21 +219,27 @@
 		"needFullTest": 1,
 		"ref": [
 			"[Monitor Redshift Performance]<https://docs.aws.amazon.com/redshift/latest/mgmt/working-with-clusters.html#rs-cluster-performance>"
-		]
-	}, 
+		],
+		"remediation": null,
+		"remediation_risk": null,
+		"remediation_doc": "https://docs.aws.amazon.com/redshift/latest/mgmt/working-with-clusters.html#rs-cluster-performance"
+	},
 	"IAMRoles": {
-			"category": "S",
-			"^description": "Use Role-Based Access Control (RBAC) through IAM roles to manage permissions effectively and adhere to the principle of least privilege. IAM roles are essential for secure integration with other AWS services (like S3, KMS, CloudWatch) and eliminate the need for storing long-term credentials. Roles provide temporary credentials that automatically rotate, enabling secure access while maintaining audit trails. Missing or improperly configured IAM roles can lead to security vulnerabilities, operational limitations, and compliance issues.",
-			"shortDesc": "Enforce RBAC with IAM roles",
-			"criticality": "H",
-			"downtime": 0,
-			"slowness": 0,
-			"additionalCost": 0,
-			"needFullTest": 0,
-			"ref": [
-				"[Creating an IAM Role]<https://docs.aws.amazon.com/redshift/latest/mgmt/authorizing-redshift-service.html#authorizing-redshift-service-creating-an-iam-role>"
-			]
-		},
+		"category": "S",
+		"^description": "Use Role-Based Access Control (RBAC) through IAM roles to manage permissions effectively and adhere to the principle of least privilege. IAM roles are essential for secure integration with other AWS services (like S3, KMS, CloudWatch) and eliminate the need for storing long-term credentials. Roles provide temporary credentials that automatically rotate, enabling secure access while maintaining audit trails. Missing or improperly configured IAM roles can lead to security vulnerabilities, operational limitations, and compliance issues.",
+		"shortDesc": "Enforce RBAC with IAM roles",
+		"criticality": "H",
+		"downtime": 0,
+		"slowness": 0,
+		"additionalCost": 0,
+		"needFullTest": 0,
+		"ref": [
+			"[Creating an IAM Role]<https://docs.aws.amazon.com/redshift/latest/mgmt/authorizing-redshift-service.html#authorizing-redshift-service-creating-an-iam-role>"
+		],
+		"remediation": null,
+		"remediation_risk": null,
+		"remediation_doc": "https://docs.aws.amazon.com/redshift/latest/mgmt/authorizing-redshift-service.html#authorizing-redshift-service-creating-an-iam-role"
+	},
 	"AZRelocation": {
 		"category": "R",
 		"^description": "Amazon Redshift clusters are distributed across multiple availability zones. When you relocate a cluster, you can choose to relocate it to a new availability zone or to the same availability zone. Relocating a cluster to a new availability zone can help distribute your workload across multiple availability zones and improve performance.",
@@ -206,6 +251,89 @@
 		"needFullTest": 0,
 		"ref": [
 			"[Relocate cluster to new AZ]<https://docs.aws.amazon.com/redshift/latest/mgmt/managing-cluster-recovery.html>"
-		]
+		],
+		"remediation": null,
+		"remediation_risk": null,
+		"remediation_doc": "https://docs.aws.amazon.com/redshift/latest/mgmt/managing-cluster-recovery.html"
+	},
+	"VpcDeployment": {
+		"category": "S",
+		"^description": "Validate cluster is deployed in VPC for network isolation. AWS recommends launching all Redshift clusters in Amazon VPC for enhanced security and network isolation. Clusters deployed in EC2-Classic lack the security features provided by VPC, such as security groups, network ACLs, and VPC Flow Logs.",
+		"shortDesc": "Cluster should be in VPC",
+		"criticality": "H",
+		"downtime": 0,
+		"slowness": 0,
+		"additionalCost": 0,
+		"needFullTest": 0,
+		"ref": [
+			"[Amazon VPC]<https://docs.aws.amazon.com/redshift/latest/mgmt/working-with-clusters.html#working-with-clusters-overview>"
+		],
+		"remediation": null,
+		"remediation_risk": null,
+		"remediation_doc": "https://docs.aws.amazon.com/redshift/latest/mgmt/working-with-clusters.html#working-with-clusters-overview"
+	},
+	"AdvisorRecommendations": {
+		"category": "P",
+		"^description": "Check for unaddressed Redshift Advisor recommendations for performance optimization. Amazon Redshift Advisor provides automated recommendations to help you optimize your cluster for better performance and lower costs. Advisor analyzes your workload and provides specific recommendations for table design, compression, query patterns, and cluster configuration. Addressing high-impact recommendations can significantly improve query performance and reduce operational costs.",
+		"shortDesc": "Review Advisor recommendations",
+		"criticality": "M",
+		"downtime": 0,
+		"slowness": 0,
+		"additionalCost": 0,
+		"needFullTest": 0,
+		"ref": [
+			"[Amazon Redshift Advisor]<https://docs.aws.amazon.com/redshift/latest/dg/advisor.html>"
+		],
+		"remediation": null,
+		"remediation_risk": null,
+		"remediation_doc": "https://docs.aws.amazon.com/redshift/latest/dg/advisor.html"
+	},
+	"EventNotifications": {
+		"category": "O",
+		"^description": "Validate SNS event notifications are configured for cluster events. Amazon SNS notifications help you stay informed about important cluster events such as maintenance windows, failures, configuration changes, and snapshot operations. Configuring event notifications enables proactive monitoring and faster incident response, improving operational visibility and reducing downtime.",
+		"shortDesc": "Configure event notifications",
+		"criticality": "L",
+		"downtime": 0,
+		"slowness": 0,
+		"additionalCost": 1,
+		"needFullTest": 0,
+		"ref": [
+			"[Amazon Redshift Event Notifications]<https://docs.aws.amazon.com/redshift/latest/mgmt/working-with-event-notifications.html>"
+		],
+		"remediation": null,
+		"remediation_risk": null,
+		"remediation_doc": "https://docs.aws.amazon.com/redshift/latest/mgmt/working-with-event-notifications.html"
+	},
+	"QueryMonitoringRules": {
+		"category": "P",
+		"^description": "Validate Query Monitoring Rules are configured in WLM for query performance tracking. Query Monitoring Rules (QMR) allow you to automatically log or abort queries that exceed defined thresholds for metrics like execution time, rows returned, or disk usage. Implementing QMR helps identify problematic queries, prevent resource exhaustion, and maintain consistent cluster performance.",
+		"shortDesc": "Configure query monitoring rules",
+		"criticality": "L",
+		"downtime": 0,
+		"slowness": 0,
+		"additionalCost": 0,
+		"needFullTest": 0,
+		"ref": [
+			"[WLM Query Monitoring Rules]<https://docs.aws.amazon.com/redshift/latest/dg/cm-c-wlm-query-monitoring-rules.html>"
+		],
+		"remediation": null,
+		"remediation_risk": null,
+		"remediation_doc": "https://docs.aws.amazon.com/redshift/latest/dg/cm-c-wlm-query-monitoring-rules.html"
+	},
+	"SecurityGroups": {
+		"category": "S",
+		"^description": "Validate VPC security groups are attached to cluster. VPC security groups act as virtual firewalls to control inbound and outbound traffic to your Redshift cluster. Attaching security groups is essential for network access control and helps restrict connections to trusted sources. Note: This check validates security group attachment only; it does not inspect security group rules (which would require EC2 API access).",
+		"shortDesc": "Attach VPC security groups",
+		"criticality": "M",
+		"downtime": 0,
+		"slowness": 0,
+		"additionalCost": 0,
+		"needFullTest": 0,
+		"ref": [
+			"[Amazon Redshift Cluster Security Groups]<https://docs.aws.amazon.com/redshift/latest/mgmt/working-with-security-groups.html>"
+		],
+		"remediation": null,
+		"remediation_risk": null,
+		"remediation_doc": "https://docs.aws.amazon.com/redshift/latest/mgmt/working-with-security-groups.html"
 	}
 }

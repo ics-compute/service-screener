@@ -11,6 +11,9 @@
 		"ref": [					//OPTIONAL
 			"[<text_to_display>]<url>",
 			"[<text_to_display>]<url>"
-		]
+		],
+		"remediation": '<string|null>',		//REQUIRED (may be null), single idempotent AWS CLI command; placeholders: {ResourceArn}, {ResourceId}, {ResourceName}, {Region}, {AccountId}; never pass --region
+		"remediation_risk": '<ENUM|null>',	//REQUIRED, valid value (single): low, medium, high; must be null when remediation is null
+		"remediation_doc": '<url|null>'		//REQUIRED (may be null), must start with https://docs.aws.amazon.com/
 	}
 }

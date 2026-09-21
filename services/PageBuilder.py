@@ -9,18 +9,18 @@ import constants as _C
 
 class PageBuilder:
     serviceIcon = {
-        'cloudfront': 'wifi', 
+        'cloudfront': 'wifi',
         'cloudtrail': 'user-secret',
         'cloudwatch': 'clock',
         'dynamodb': 'bars',
         'ec2': 'server',
-        'efs': 'network-wired', 
-        'eks': 'box', 
+        'efs': 'network-wired',
+        'eks': 'box',
         'elasticache': 'store',
         'guardduty': 'shield-alt',
         'iam': 'users',
         'kms': 'key',
-        'lambda': 'calculator', 
+        'lambda': 'calculator',
         'opensearch': 'warehouse',
         'rds': 'database',
         's3': 'hdd',
@@ -28,7 +28,7 @@ class PageBuilder:
         'Findings': 'bug',
         'TA': 'user-md'
     }
-    
+
     frameworkIcon = 'tasks'
 
     pageTemplate = {
@@ -43,7 +43,7 @@ class PageBuilder:
 
     isHome = False
     isBeta = False
-    
+
     colorCustomHex = None
     colorCustomRGB = None
 
@@ -52,7 +52,7 @@ class PageBuilder:
         self.services = Config.get('cli_services', [])
         self.frameworks = Config.get('cli_frameworks', [])
         self.regions = Config.get('cli_regions', [])
-        
+
         self.reporter = reporter
 
         self.idPrefix = self.service + '-'
@@ -60,9 +60,9 @@ class PageBuilder:
         self.js = []
         self.jsLib = []
         self.cssLib = []
-        
+
         self.htmlFolder = Config.get('HTML_ACCOUNT_FOLDER_FULLPATH')
-        
+
     def getHtmlId(self, el=''):
         o = uuid.uuid4().hex
         el = el or o[0:11]
@@ -107,23 +107,23 @@ class PageBuilder:
 
         if not os.path.exists(self.htmlFolder):
             os.makedirs(self.htmlFolder)
-        
+
         # print(self.htmlFolder + '/' + self.service + '.html')
         with open(self.htmlFolder + '/' + self.service + '.html', 'w') as f:
             f.write(finalHTML)
-    
+
     def init(self):
         self.template = 'default'
-    
+
     def buildContentSummary(self):
         method = 'buildContentSummary_' + self.template
-        
+
         # Check if suppressions are active
         suppressions_manager = Config.get('suppressions_manager', None)
-        
+
         # Create output array
         output = []
-        
+
         # Call the template method
         if hasattr(self, method):
             template_output = getattr(self, method)()
@@ -132,12 +132,12 @@ class PageBuilder:
         else:
             cls = self.__class__.__name__
             print("[{}] Template for ContentSummary not found: {}".format(cls, method))
-        
+
         # Add suppression modal if suppressions are active
         if suppressions_manager and suppressions_manager.is_loaded:
             modal_html = self.generateSuppressionModal(suppressions_manager)
             output.append(modal_html)
-            
+
             # Add JavaScript to handle modal
             modal_js = '''
 // Handle suppression modal
@@ -146,24 +146,24 @@ $(document).ready(function() {
         e.preventDefault();
         $('#suppressionModal').modal('show');
     });
-    
+
     // Ensure modal can be closed
     $('#suppressionModalClose, #suppressionModalCloseBtn').click(function() {
         $('#suppressionModal').modal('hide');
     });
-    
+
     // Handle backdrop click
     $('#suppressionModal').on('click', function(e) {
         if (e.target === this) {
             $(this).modal('hide');
         }
     });
-    
+
     // Fix for modal backdrop issues
     $('#suppressionModal').on('shown.bs.modal', function() {
         $('body').addClass('modal-open');
     });
-    
+
     $('#suppressionModal').on('hidden.bs.modal', function() {
         $('body').removeClass('modal-open');
         $('.modal-backdrop').remove();
@@ -171,9 +171,9 @@ $(document).ready(function() {
 });
 '''
             self.addJS(modal_js)
-        
+
         return output
-    
+
     def buildContentDetail(self):
         method = 'buildContentDetail_' + self.template
         if hasattr(self, method):
@@ -194,7 +194,7 @@ $(document).ready(function() {
         output.append("</div>")
 
         return "\n".join(output)
-        
+
     def generateCol(self, size=12, item=[]):
         output = []
         if not item:
@@ -205,7 +205,7 @@ $(document).ready(function() {
             output.append(html)
             output.append("</div>")
         return "\n".join(output)
-        
+
     def generateCard(self, pid, html, cardClass='warning', title='', titleBadge='', collapse=False, noPadding=False):
         output = []
 
@@ -214,7 +214,7 @@ $(document).ready(function() {
         defaultCollapseIcon = "plus" if collapse == 9 else "minus"
 
         output.append("<div id='{}' class='card {} {}'>".format(pid, lteCardClass, defaultCollapseClass))
-        
+
         genAiButton = ''
         if self.isBeta and pid[:8]=="SUMMARY_":
             genAiButton = '<span class="beta-genai" data-toggle="modal" data-target="#genai-modal"><i class="fas fa-question-circle"></i> '
@@ -237,7 +237,7 @@ $(document).ready(function() {
         output.append("</div>")
         output.append("</div>")
         return "\n".join(output)
-        
+
     def generateCategoryBadge(self, category, addtionalHtmlAttr):
         validCategory = ['R', 'S', 'O', 'P', 'C', 'T']
         colorByCategory = ['info', 'danger', 'primary', 'success', 'warning', 'info']
@@ -252,7 +252,7 @@ $(document).ready(function() {
             name = nameByCategory[indexOf]
 
         return "<span class='badge badge-{}', {}>{}</span>".format(color, addtionalHtmlAttr, name)
-        
+
     def generatePriorityPrefix(self, criticality, addtionalHtmlAttr):
         validCategory = ['I', 'L', 'M', 'H']
         colorByCategory = ['info', 'primary', 'warning', 'danger']
@@ -285,13 +285,13 @@ $(document).ready(function() {
         if len(hasTags.strip()) > 0:
             output.append(f"<dt>Label</dt><dd>{hasTags}</dd>")
 
-        if summary['__links']:
+        if summary.get('__links'):
             output.append("<dt>Recommendation</dt><dd class='detail-href'>" + "</dd><dd class='detail-href''>".join(summary['__links']) + "</dd>")
 
         output.append("</dl>")
 
         return "\n".join(output)
-        
+
     def generateDonutPieChart(self, datasets, idPrefix='', typ='doughnut'):
         htmlId = idPrefix + typ + str(uuid.uuid1())
         output = []
@@ -303,7 +303,7 @@ $(document).ready(function() {
         self.addJS("var donutPieOptions= {{maintainAspectRatio : false,responsive : true}}; new Chart(donutPieChartCanvas, {{type: '{}', data: donutPieData, options: donutPieOptions}})".format(typ))
 
         return '\n'.join(output)
-        
+
     def generateBarChart(self, labels, datasets, idPrefix = ''):
         id = idPrefix + 'bar' + str(uuid.uuid1())
 
@@ -314,7 +314,7 @@ $(document).ready(function() {
 
         self.addJS("var areaChartData = {labels: " + json.dumps(labels) + ", datasets: " + json.dumps(enriched) + "}")
         self.addJS("var barChartData = $.extend(true, {}, areaChartData); var stackedBarChartCanvas = $('#" + id + "').get(0).getContext('2d'); var stackedBarChartData = $.extend(true, {}, barChartData)")
-        
+
         self.addJS("""
         var stackedBarChartOptions = {
           responsive              : true,
@@ -347,9 +347,9 @@ $(document).ready(function() {
                 data: stackedBarChartData,
                 options: stackedBarChartOptions
             })""")
-        
+
         return "\n".join(output)
-        
+
     def generateSummaryCardTag(self, summary):
         text = ''
         text += self._generateSummaryCardTagHelper(summary.get('downtime', False), 'Have Downtime')
@@ -358,36 +358,36 @@ $(document).ready(function() {
         text += ' ' + self._generateSummaryCardTagHelper(summary.get('additionalCost', False), 'Cost Incurred')
 
         return text
-        
+
     def _generateSummaryCardTagHelper(self, flag, text):
         if flag == False:
             return ''
-        
+
         strx = text
         color = 'warning'
         if flag < 0:
             strx += " (maybe)"
             color = 'info'
-            
+
         return f"<span class='badge badge-{color}'>{strx}</span>"
-        
+
     def _enrichDonutPieData(self, datasets):
         label = []
         arr = {
             'data': [],
             'backgroundColor': []
         }
-        
+
         idx = 0
         for key, num in datasets.items():
             label.append(key)
             arr['data'].append(num)
             arr['backgroundColor'].append(self._randomHexColorCode(idx))
-            
+
             idx += 1
-            
+
         return [label, arr]
-        
+
     def _enrichChartData(self, datasets):
         arr = []
         idx = 0
@@ -400,7 +400,7 @@ $(document).ready(function() {
             idx += 1
 
         return arr
-        
+
     def _randomRGB(self, idx):
         if self.colorCustomRGB == None:
             r1Arr = [226, 168, 109, 80 , 51 , 60 , 70 , 89 , 108]
@@ -410,22 +410,22 @@ $(document).ready(function() {
             r1Arr = self.colorCustomRGB[0]
             r2Arr = self.colorCustomRGB[1]
             r3Arr = self.colorCustomRGB[2]
-        
+
         if idx >= len(r1Arr):
             idx = idx%len(r1Arr)
-        
+
         r1 = r1Arr[idx]
         r2 = r2Arr[idx]
         r3 = r3Arr[idx]
-    
+
         return "rgba({}, {}, {}, 1)".format(r1, r2, r3)
-        
+
     def _randomHexColorCode(self, idx):
         if self.colorCustomHex == None:
             color = ["#e27c7c", "#a86464", "#6d4b4b", "#503f3f", "#333333", "#3c4e4b", "#466964", "#599e94", "#6cd4c5"]
         else:
             color = self.colorCustomHex
-        
+
         if idx >= len(color):
             idx = idx%len(color)
             # return '#' + str(hex(random.randint(0, 0xFFFFFF))).lstrip('0x').rjust(6, '0')
@@ -436,7 +436,7 @@ $(document).ready(function() {
         if not category:
             return title
         return f"{count}. {title} <span class='detailCategory' data-span-category='{category}'></span>"
-        
+
     def generateTable(self, resource):
         output = []
         for check, attr in resource.items():
@@ -454,17 +454,17 @@ $(document).ready(function() {
             output.append("</tr>")
 
         return "\n".join(output)
-        
+
     def _getTemplateByKey(self, key):
         path = _C.TEMPLATE_DIR + '/' + self.pageTemplate[key]
-        
+
         if os.path.exists(path):
             return path
         else:
             _warn(path + ' does not exists')
             ## <TODO>
             # debug_print_backtrace()
-    
+
     def buildHeader(self):
         output = []
         #file_get_pre_css
@@ -479,16 +479,16 @@ $(document).ready(function() {
 
         #file_get_post_css
         headerPostCSS = open(self._getTemplateByKey('header.postcss'), 'r').read()
-        
+
         # Generate suppression indicator
         suppression_indicator = self.generateSuppressionIndicator()
-        
+
         output.append(
             headerPostCSS.replace('{$ADVISOR_TITLE}', Config.ADVISOR['TITLE'])
                 .replace('{$OPTIONS_ACCOUNTS}', self.accountListsHTML())
                 .replace('{$SUPPRESSION_INDICATOR}', suppression_indicator)
         )
-        
+
         js = """
 $('#changeAcctId').change(function(){
     var url = window.location.href
@@ -501,14 +501,14 @@ $('#changeAcctId').change(function(){
         self.addJS(js)
 
         return output
-    
+
     def generateSuppressionIndicator(self):
         """Generate the suppression indicator for the header"""
         suppressions_manager = Config.get('suppressions_manager', None)
-        
+
         if not suppressions_manager or not suppressions_manager.is_loaded:
             return ""
-        
+
         # Only return the indicator button, modal will be added separately
         indicator_html = '''
       <li class="nav-item">
@@ -517,13 +517,13 @@ $('#changeAcctId').change(function(){
           <span class="d-none d-md-inline ml-1">Suppression Active</span>
         </a>
       </li>'''
-        
+
         return indicator_html
-    
+
     def generateSuppressionModal(self, suppressions_manager):
         """Generate the suppression modal HTML"""
         suppression_config_html = self.generateSuppressionConfigHTML(suppressions_manager)
-        
+
         modal_html = f'''
 <!-- Suppression Configuration Modal -->
 <div class="modal fade" id="suppressionModal" tabindex="-1" role="dialog" aria-labelledby="suppressionModalLabel" aria-hidden="true">
@@ -546,30 +546,30 @@ $('#changeAcctId').change(function(){
     </div>
   </div>
 </div>'''
-        
+
         return modal_html
-    
+
     def generateSuppressionConfigHTML(self, suppressions_manager):
         """Generate human-readable HTML for suppression configuration"""
         if not suppressions_manager or not suppressions_manager.is_loaded:
             return "<p>No suppressions active.</p>"
-        
+
         html_parts = []
-        
+
         # Add summary
         service_rule_count = len(suppressions_manager.suppressions.get('service_rules', {}))
         resource_specific_count = sum(
-            len(resources) for service_rules in suppressions_manager.suppressions.get('resource_specific', {}).values() 
+            len(resources) for service_rules in suppressions_manager.suppressions.get('resource_specific', {}).values()
             for resources in service_rules.values()
         )
-        
+
         html_parts.append(f'''
         <div class="alert alert-info">
           <h6><i class="fas fa-info-circle"></i> Summary</h6>
           <p><strong>{service_rule_count}</strong> service-level suppressions and <strong>{resource_specific_count}</strong> resource-specific suppressions are active.</p>
         </div>
         ''')
-        
+
         # Service-level suppressions
         service_rules = suppressions_manager.suppressions.get('service_rules', {})
         if service_rules:
@@ -578,7 +578,7 @@ $('#changeAcctId').change(function(){
             html_parts.append('<table class="table table-sm table-striped">')
             html_parts.append('<thead><tr><th>Service</th><th>Rule</th><th>Description</th></tr></thead>')
             html_parts.append('<tbody>')
-            
+
             for service, rules in service_rules.items():
                 for rule in rules:
                     description = f"All {rule} findings for {service.upper()} service are suppressed"
@@ -589,9 +589,9 @@ $('#changeAcctId').change(function(){
                       <td>{description}</td>
                     </tr>
                     ''')
-            
+
             html_parts.append('</tbody></table></div>')
-        
+
         # Resource-specific suppressions
         resource_specific = suppressions_manager.suppressions.get('resource_specific', {})
         if resource_specific:
@@ -600,13 +600,13 @@ $('#changeAcctId').change(function(){
             html_parts.append('<table class="table table-sm table-striped">')
             html_parts.append('<thead><tr><th>Service</th><th>Rule</th><th>Resources</th></tr></thead>')
             html_parts.append('<tbody>')
-            
+
             for service, service_rules in resource_specific.items():
                 for rule, resources in service_rules.items():
                     resources_html = []
                     for resource in resources:
                         resources_html.append(f'<span class="badge badge-secondary mr-1">{resource}</span>')
-                    
+
                     html_parts.append(f'''
                     <tr>
                       <td><span class="badge badge-primary">{service.upper()}</span></td>
@@ -614,14 +614,14 @@ $('#changeAcctId').change(function(){
                       <td>{"".join(resources_html)}</td>
                     </tr>
                     ''')
-            
+
             html_parts.append('</tbody></table></div>')
-        
+
         if not service_rules and not resource_specific:
             html_parts.append('<p class="text-muted">No suppression rules configured.</p>')
-        
+
         return ''.join(html_parts)
-    
+
     def accountListsHTML(self):
         accts = Config.get("ListOfAccounts", None)
         acctInfo = Config.get('stsInfo')
@@ -631,9 +631,9 @@ $('#changeAcctId').change(function(){
             if acct == acctInfo['Account']:
                 slct = ' selected'
             html.append("<option value='{}'{}>{}</option>".format(acct, slct, acct))
-        
+
         return ''.join(html);
-    
+
     def buildFooter(self):
         output = []
         #file_get_template preInlineJS
@@ -647,14 +647,14 @@ $('#changeAcctId').change(function(){
 
         PROJECT_TITLE = Config.ADVISOR['TITLE']
         PROJECT_VERSION = Config.ADVISOR['VERSION']
-        
+
         x = preJS.replace('{$ADMINLTE_VERSION}', ADMINLTE_VERSION)
         x = x.replace('{$ADMINLTE_DATERANGE}', ADMINLTE_DATERANGE)
         x = x.replace('{$ADMINLTE_URL}', ADMINLTE_URL)
         x = x.replace('{$ADMINLTE_TITLE}', ADMINLTE_TITLE)
         x = x.replace('{$PROJECT_TITLE}', PROJECT_TITLE)
         x = x.replace('{$PROJECT_VERSION}', PROJECT_VERSION)
-        
+
         output.append(x)
 
         if self.jsLib:
@@ -669,16 +669,16 @@ $('#changeAcctId').change(function(){
         postJS = open(self._getTemplateByKey('footer.postjs'), 'r').read()
         output.append(postJS)
 
-        return output    
-        
+        return output
+
     def buildBreadcrumb(self):
         output = []
         breadcrumb = open(self._getTemplateByKey('breadcrumb'), 'r').read()
         breadcrumb = breadcrumb.replace('{$SERVICE}', self.service.upper())
         output.append(breadcrumb)
-           
+
         return output
-        
+
     def buildNav(self):
         ISHOME = 'active' if self.isHome else ''
 
@@ -688,13 +688,13 @@ $('#changeAcctId').change(function(){
         sidebarPRE = sidebarPRE.replace('{$ADVISOR_TITLE}', Config.ADVISOR['TITLE'])
         sidebarPRE = sidebarPRE.replace('{$ISHOME}', ISHOME)
         output.append(sidebarPRE)
-        
+
         #Page
         pages = Config.get('CustomPage::Pages')
         if pages:
             arr = self.buildNavCustomItems('Pages', pages)
             output.append("\n".join(arr))
-        
+
         arr = self.buildNavCustomItems('Frameworks', self.frameworks)
         output.append("\n".join(arr))
 
@@ -705,13 +705,13 @@ $('#changeAcctId').change(function(){
         output.append(sidebarPOST)
 
         return output
-    
+
     ## <TODO>
     ## Support Framework
     def buildNavCustomItems(self, title, lists):
         services = lists
         activeService = self.service
-        
+
         skipCount = False
         if title == 'Pages':
             skipCount = True
@@ -723,23 +723,23 @@ $('#changeAcctId').change(function(){
                 services[l] = 0
         else:
             services = lists
-            
+
         output = []
         output.append("<li class='nav-header'>{}</li>".format(title))
-            
+
         _services = sorted(services)
-        
+
         for name in _services:
             count = 0
             if skipCount == False:
                 count = services[name]
-                
+
             if name == activeService:
                 class_ = 'active'
             else:
                 class_ = ''
-            
-            isFramework = True    
+
+            isFramework = True
             icon = self.frameworkIcon
             if name in self.serviceIcon:
                 isFramework = False
@@ -752,7 +752,7 @@ $('#changeAcctId').change(function(){
             link = name
             if skipCount == True:
                 link = 'CP' + name
-                
+
             output.append("<li class='nav-item'>\n"
                           "<a href='{}.html' class='nav-link {}'>\n"
                           "<i class='nav-icon fas fa-{}'></i>\n"
@@ -761,46 +761,46 @@ $('#changeAcctId').change(function(){
                           "</li>".format(link, class_, icon, name.upper(), _count))
 
         return output
-        
+
     def _navIcon(self, service):
         return self.serviceIcon.get(service, 'cog')
-        
+
     def addJS(self, js):
         self.js.append(js)
-        
+
     def addJSLib(self, js):
         self.jsLib.append(js)
-        
+
     def addCSSLib(self, css):
         self.cssLib.append(css)
-        
+
     def checkIsLowHangingFruit(self, attr):
         if attr['downtime'] == 0 and attr['additionalCost'] == 0 and attr['needFullTest'] == 0:
             return True
         else:
             return False
-            
-    def buildKpiCard(self): 
+
+    def buildKpiCard(self):
         output=[]
         stats = self.reporter.stats
-        
+
         ## 1st kpi: #Resources
         output.append(self._buildIndividualKpiCard(stats['resources'], 'resources'))
-        
+
         output.append(self._buildIndividualKpiCard(self.reporter.findingsCount, 'findings'))
         output.append(self._buildIndividualKpiCard(stats['rules'], 'rules'))
-        
+
         output.append(self._buildIndividualKpiCard(stats['checksCount'], 'checksCount'))
-        
+
         # Comment out exceptions and replace with suppressions
         # output.append(self._buildIndividualKpiCard(stats['exceptions'], 'exceptions'))
-        
+
         output.append(self._buildIndividualKpiCard(self.reporter.suppressedCount, 'suppressions'))
-        
+
         output.append(self._buildIndividualKpiCard(str(round(stats['timespent'], 3)) + 's', 'timespent'))
-        
+
         return output
-        
+
     def _buildIndividualKpiCard(self, stat, cat):
         settings = {
             'resources': {
@@ -838,11 +838,11 @@ $('#changeAcctId').change(function(){
                 'icon': 'clock',
                 'bg': 'pink'
             }
-            
+
         }
-        
+
         inf = settings[cat]
-        
+
         s = """<div class='small-box bg-{}'>
             <div class='inner'>
                 <h3>{}</h3>
@@ -852,13 +852,13 @@ $('#changeAcctId').change(function(){
                 <i class='fas fa-{}'></i>
             </div>
         </div>""".format(inf['bg'], stat, inf['description'], inf['icon'])
-        
+
         return s
-    
+
     def genaiModalHtml(self):
         genAIJS = """serv = $('h1').text()
 activeAcct = $('#changeAcctId').val()
-        
+
 $('.beta-genai').click(function(){
   t = $(this)
   currentInfo = {'activeAcct': activeAcct, 'service': serv,'title': t.parent().text().trim(),'resources': {}, 'href': []}
@@ -892,7 +892,7 @@ genaiResp = $('#genai-modal-response')
 $('#genai-savequery').click(function(){
   sbtn = $(this)
   genaikeys = $('#genai-key').val().split('|')
-  
+
   if((genaikeys.length < 2) || (genaikeys.length > 2)){
     alert('invalid keys')
     return
@@ -901,11 +901,11 @@ $('#genai-savequery').click(function(){
   sbtn.prop('disabled', true)
   myJsonData = {'api_data': currentInfo}
   genaiResp.text("... generating results, it can take times, please be patient ...\\n\\nData sent are as below:\\n" + JSON.stringify(myJsonData, null, 4))
-  
+
   a_url = genaikeys[0]
   a_key = genaikeys[1]
 
-  
+
   $.ajax({
     url: a_url,
     // headers: {'x-api-key': a_key},
@@ -918,7 +918,7 @@ $('#genai-savequery').click(function(){
       sbtn.prop('disabled', false)
     },
     error: function(xhr, status, error) {
-      sbtn.prop('disabled', false)    
+      sbtn.prop('disabled', false)
       genaiResp.text("Error..., check console.log")
       console.error('Error:', error);
     }
@@ -962,9 +962,9 @@ $('#genai-savequery').click(function(){
         kpiCards = self.buildKpiCard()
         for kpi in kpiCards:
             items.append([kpi, ''])
-            
+
         output.append(self.generateRowWithCol(size=2, items=items))
-        
+
         ## Chart Building
         summary = self.reporter.cardSummary
         regions = self.regions
@@ -978,7 +978,7 @@ $('#genai-savequery').click(function(){
                 if region in res:
                     cnt = len(res[region])
                 dataSets.setdefault(region, []).append(cnt)
-        
+
         pid=self.getHtmlId('SummaryChart')
         html = self.generateBarChart(labels, dataSets)
         card = self.generateCard(pid, html, cardClass='warning', title='Summary', titleBadge='', collapse=9, noPadding=False)
@@ -999,7 +999,7 @@ $('#genai-savequery').click(function(){
             html = self.generateBarChart(chartConfig['legends'], chartDataSets)
             card = self.generateCard(chartPid, html, cardClass='info', title=title, titleBadge='', collapse=9, noPadding=False)
             chartItems.append([card, ''])
-        
+
         output.append(self.generateRowWithCol(size=6, items=chartItems, rowHtmlAttr="data-context='costChart'"))
 
         ##### Cost Optimization Chart Completed #####
@@ -1010,7 +1010,7 @@ $('#genai-savequery').click(function(){
         filterRow = self.generateRowWithCol(size=[6, 6, 12], items=self.addSummaryControl_default(), rowHtmlAttr="data-context='summary-control'")
 
         output.append(self.generateCard(pid='summary-control', html=filterByCheck + filterRow, cardClass='info', title=filterTitle, titleBadge='', collapse=False, noPadding=False))
-        
+
         ## SummaryCard Building
         items = []
         for label, attrs in summary.items():
@@ -1027,7 +1027,7 @@ $('#genai-savequery').click(function(){
 
         output.append(self.generateRowWithCol(size=4, items=items, rowHtmlAttr="data-context='summary'"))
         return output
-        
+
     def buildContentDetail_default(self):
         output = []
         output.append('<h5 class="mt-4 mb-2">Detail</h5>')
@@ -1065,7 +1065,7 @@ $('#genai-savequery').click(function(){
                 count += 1
 
             output.append(self.generateRowWithCol(size=6, items=items, rowHtmlAttr="data-context=detail"))
-        
+
         str = """
 $('span.detailCategory').each(function(){
   var t = $(this);
@@ -1073,9 +1073,9 @@ $('span.detailCategory').each(function(){
 })
 """
         self.addJS(str)
-        
+
         return output
-        
+
     def generateFilterByCheck(self, labels):
         opts = []
         for label in labels:
@@ -1097,7 +1097,7 @@ $('span.detailCategory').each(function(){
 """.format(options)
 
         return str
-        
+
     def addSummaryControl_default(self):
         jsServIdPrefix = "#" + self.service + '-'
 
@@ -1118,7 +1118,7 @@ $('span.detailCategory').each(function(){
   </select>
 </div>"""
         items.append([str, ''])
-    
+
         str = """
 <div class="form-group">
   <label>Criticality</label>
@@ -1159,7 +1159,7 @@ $('span.detailCategory').each(function(){
 </div>
 """
         items.append([str, ''])
-        
+
         js = """
 $('.select2').select2()
 var si = $('div[data-context="summary"] div[data-category]');

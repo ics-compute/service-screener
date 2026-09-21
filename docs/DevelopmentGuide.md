@@ -68,13 +68,13 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install boto3
 
 # Create a new service (example: S3)
-python3 CreateService.py -s s3
+python3 scripts/CreateService.py -s s3
 ```
 
 The script accepts any AWS service name from boto3's available services. You can see all available services by running:
 
 ```bash
-python3 CreateService.py --help
+python3 scripts/CreateService.py --help
 ```
 
 #### Step 2: What Gets Generated
@@ -108,22 +108,22 @@ class Logs(Service):  # Changed from ServiceName to Logs
     def __init__(self, region):
         super().__init__(region)
         self.region = region
-        
+
         # Initialize AWS clients using the shared boto session
         ssBoto = self.ssBoto
         self.logsClient = ssBoto.client('logs', config=self.bConfig)
-        
+
     def getResources(self):
         """
         Discover and return resources to be checked.
         This method should handle pagination and filtering.
         """
         log_groups = []
-        
+
         try:
             # Get log groups with pagination
             paginator = self.logsClient.get_paginator('describe_log_groups')
-            
+
             for page in paginator.paginate():
                 for log_group in page.get('logGroups', []):
                     # Apply tag filtering if specified
@@ -133,20 +133,20 @@ class Logs(Service):  # Changed from ServiceName to Logs
                                 logGroupName=log_group['logGroupName']
                             )
                             tags = [{'Key': k, 'Value': v} for k, v in tags_response.get('tags', {}).items()]
-                            
+
                             if not self.resourceHasTags(tags):
                                 continue
                         except botocore.exceptions.ClientError:
                             # Skip if unable to get tags
                             continue
-                    
+
                     log_groups.append(log_group)
-                    
+
         except botocore.exceptions.ClientError as e:
             print(f"Error getting log groups: {e}")
-            
+
         return log_groups
-    
+
     def advise(self):
         """
         Main method that runs checks on discovered resources.
@@ -154,19 +154,19 @@ class Logs(Service):  # Changed from ServiceName to Logs
         """
         objs = {}
         log_groups = self.getResources()
-        
+
         for log_group in log_groups:
             log_group_name = log_group['logGroupName']
             _pi('LogGroup', log_group_name)  # Progress indicator
-            
+
             # Create driver instance and run checks
             obj = LogGroupDriver(log_group, self.logsClient)
             obj.run(self.__class__)
-            
+
             # Store results
             objs[f"LogGroup::{log_group_name}"] = obj.getInfo()
             del obj
-            
+
         return objs
 
 # Test harness for development
@@ -195,45 +195,45 @@ class LogGroupDriver(Evaluator):
         self.log_group = log_group
         self.logs_client = logs_client
         self.log_group_name = log_group['logGroupName']
-        
+
         # Store resource information for reporting
         self.addII('logGroupName', self.log_group_name)
         self.addII('creationTime', log_group.get('creationTime'))
         self.addII('retentionInDays', log_group.get('retentionInDays'))
-        
-        #### MUST CHANGE 
+
+        #### MUST CHANGE
         # self._resourceName is the unique identify for this resource being scanned
         # this is a STRING
         self._resourceName = log_group['logGroupName']
 
         self.init()
-    
+
     def _checkRetentionPolicy(self):
         """
         Check if log group has a retention policy set.
         Best practice: Set appropriate retention to manage costs.
         """
         retention_days = self.log_group.get('retentionInDays')
-        
+
         if retention_days is None:
             self.results['RetentionPolicy'] = [-1, 'Not Set']
         elif retention_days > 365:
             self.results['RetentionPolicy'] = [-1, f'{retention_days} days (>1 year)']
         else:
             self.results['RetentionPolicy'] = [1, f'{retention_days} days']
-    
+
     def _checkEncryption(self):
         """
         Check if log group is encrypted with KMS.
         Best practice: Encrypt sensitive log data.
         """
         kms_key_id = self.log_group.get('kmsKeyId')
-        
+
         if kms_key_id:
             self.results['Encryption'] = [1, 'KMS Encrypted']
         else:
             self.results['Encryption'] = [-1, 'Not Encrypted']
-    
+
     def _checkRecentActivity(self):
         """
         Check if log group has recent log events.
@@ -247,34 +247,34 @@ class LogGroupDriver(Evaluator):
                 descending=True,
                 limit=1
             )
-            
+
             log_streams = response.get('logStreams', [])
             if not log_streams:
                 self.results['RecentActivity'] = [0, 'No log streams']
                 return
-            
+
             last_event_time = log_streams[0].get('lastEventTime')
             if last_event_time:
                 last_event_date = datetime.fromtimestamp(last_event_time / 1000)
                 days_ago = (datetime.now() - last_event_date).days
-                
+
                 if days_ago > 30:
                     self.results['RecentActivity'] = [0, f'Last activity {days_ago} days ago']
                 else:
                     self.results['RecentActivity'] = [1, f'Active (last event {days_ago} days ago)']
             else:
                 self.results['RecentActivity'] = [0, 'No recent events']
-                
+
         except botocore.exceptions.ClientError as e:
             self.results['RecentActivity'] = [0, f'Unable to check: {e.response["Error"]["Code"]}']
-    
+
     def _checkLogGroupSize(self):
         """
         Check log group storage size for cost optimization.
         Informational: Help identify high-cost log groups.
         """
         stored_bytes = self.log_group.get('storedBytes', 0)
-        
+
         if stored_bytes == 0:
             self.results['StorageSize'] = [0, 'Empty']
         elif stored_bytes > 10 * 1024 * 1024 * 1024:  # 10GB
@@ -423,7 +423,7 @@ The reporter JSON file defines how findings are presented in the HTML report.
 ### Categories (Well-Architected Pillars)
 
 - `S`: Security
-- `R`: Reliability  
+- `R`: Reliability
 - `O`: Operational Excellence
 - `P`: Performance Efficiency
 - `C`: Cost Optimization
@@ -451,10 +451,10 @@ from services.example.Example import Example
 def test_example_service():
     Config.init()
     Config.set('_AWS_OPTIONS', {'region': 'us-east-1'})
-    
+
     service = Example('us-east-1')
     results = service.advise()
-    
+
     print("Service Results:")
     for resource, data in results.items():
         print(f"\nResource: {resource}")
@@ -494,7 +494,7 @@ python3 main.py --regions us-east-1 --services example
 def getResources(self):
     """Always implement proper pagination and error handling"""
     resources = []
-    
+
     try:
         paginator = self.client.get_paginator('list_resources')
         for page in paginator.paginate():
@@ -505,7 +505,7 @@ def getResources(self):
                 resources.append(resource)
     except botocore.exceptions.ClientError as e:
         print(f"Error discovering resources: {e}")
-        
+
     return resources
 ```
 
@@ -516,7 +516,7 @@ def getResources(self):
 def _checkMultipleResources(self):
     resource_ids = [r['Id'] for r in self.resources]
     response = self.client.describe_resources(ResourceIds=resource_ids)
-    
+
 # Avoid: Individual API calls in loops
 def _checkResourcesIndividually(self):
     for resource in self.resources:
@@ -547,10 +547,10 @@ def _checkSomething(self):
             self.results['Feature'] = [1, 'Enabled']
         else:
             self.results['Feature'] = [-1, 'Disabled']
-            
+
     except botocore.exceptions.ClientError as e:
         error_code = e.response['Error']['Code']
-        
+
         # Handle known error conditions
         if error_code in ['AccessDenied', 'UnauthorizedOperation']:
             # Skip check if no permissions
@@ -573,11 +573,11 @@ class SimpleService(Service):
     def __init__(self, region):
         super().__init__(region)
         self.client = self.ssBoto.client('service-name', config=self.bConfig)
-    
+
     def getResources(self):
         # Return a single dummy resource for account-level checks
         return [{'account': 'current'}]
-    
+
     def advise(self):
         objs = {}
         obj = SimpleDriver(self.client)
@@ -594,19 +594,19 @@ For services with multiple resource types:
 class ComplexService(Service):
     def advise(self):
         objs = {}
-        
+
         # Check different resource types
         clusters = self.getClusters()
         for cluster in clusters:
             obj = ClusterDriver(cluster, self.client)
             obj.run(self.__class__)
             objs[f"Cluster::{cluster['name']}"] = obj.getInfo()
-        
+
         instances = self.getInstances()
         for instance in instances:
             obj = InstanceDriver(instance, self.client)
             obj.run(self.__class__)
             objs[f"Instance::{instance['id']}"] = obj.getInfo()
-            
+
         return objs
 ```

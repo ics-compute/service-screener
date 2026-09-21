@@ -13,7 +13,7 @@ class Lambda(Service):
     def __init__(self, region):
         super().__init__(region)
         self.region = region
-        
+
         ssBoto = self.ssBoto
         self.lambda_client = ssBoto.client("lambda", config=self.bConfig)
         self.iam_client = ssBoto.client("iam", config=self.bConfig)
@@ -74,15 +74,15 @@ class Lambda(Service):
                 # cls = getattr(module, driver)
                 _pi('Lambda', lambda_function['FunctionName'])
                 # obj = cls(lambda_function, self.lambda_client, self.iam_client, role_count)
-                obj = LambdaCommon(lambda_function, self.lambda_client, self.iam_client, role_count)
+                obj = LambdaCommon(lambda_function, self.lambda_client, self.iam_client, role_count, self.bConfig)
                 obj.run(self.__class__)
                 objs[f"Lambda::{lambda_function['FunctionName']}"] = obj.getInfo()
             except (ImportError, AttributeError):
                 print(f"Failed to load driver {driver}")
 
         return objs
-            
-            
+
+
 if __name__ == "__main__":
     Config.init()
     o = Lambda('ap-southeast-1')

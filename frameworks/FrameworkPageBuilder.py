@@ -4,7 +4,7 @@ from services.PageBuilder import PageBuilder
 
 class FrameworkPageBuilder(PageBuilder):
     COMPLIANCE_STATUS = ["Not available", "Compliant", "Need Attention"]
-    
+
     FRAMEWORK_JS_LIB = [
         "/jquery.dataTables.min.js",
         "-bs4/js/dataTables.bootstrap4.min.js",
@@ -21,63 +21,82 @@ class FrameworkPageBuilder(PageBuilder):
         "responsive/css/responsive.bootstrap4.min.css",
         "buttons/css/buttons.bootstrap4.min.css"
     ]
-    
+
     HTML_TABLE_ID = 'screener-framework'
-    
+
     colorCustomHex = ["#17a2b8", "#28a745", "#dc3545"]
     colorCustomRGB = [
         [23, 40, 220],
         [162, 167, 53],
         [184, 69, 69]
     ]
-    
+
     def __init__(self, service=None, reporter=None):
         framework = service
         print("Generating Framework - {}".format(framework))
         FrameworkClass = FrameworkPageBuilder.getServiceModuleDynamically(framework)
 
         super().__init__(framework, reporter)
-        
+
         obj = FrameworkClass(reporter)
-        
+
         self.framework = obj
         self.framework.readFile()
-        
+
         self.initCSS()
         self.initJSLib()
         self.populate()
         self.addDataTableJS()
-        
+
     @staticmethod
     def getServiceModuleDynamically(framework):
         folder = framework
         className = framework
         module = 'frameworks.' + folder + '.' + className
-        
+
         ServiceClass = getattr(importlib.import_module(module), className)
         return ServiceClass
+
+    @staticmethod
+    def create(framework, reporter):
+        """Factory that returns a framework-specific page builder subclass when
+        one exists at ``frameworks/<NAME>/<NAME>PageBuilder.py``, falling back
+        to the generic ``FrameworkPageBuilder`` otherwise. Keeps the base class
+        free of framework-specific knowledge while still allowing call sites
+        to construct the right page builder for a given framework name."""
+        try:
+            module = importlib.import_module(
+                'frameworks.{name}.{name}PageBuilder'.format(name=framework)
+            )
+            cls = getattr(module, '{}PageBuilder'.format(framework), None)
+            if isinstance(cls, type) and issubclass(cls, FrameworkPageBuilder) \
+                    and cls is not FrameworkPageBuilder:
+                return cls(framework, reporter)
+        except (ImportError, AttributeError):
+            pass
+        return FrameworkPageBuilder(framework, reporter)
 
 
     def getGateCheckStatus(self):
         return self.framework.gateCheck()
-    
+
     def populate(self):
         self.headerInfo = self.framework.getMetaData()
-    
+
     def populateFrameworkData(self):
         pass
-    
+
     def setFrameworkTitle(self, titleArr):
         self.fwTitle = titleArr
-        
+
     def setFrameworkDetail(self, detailArr):
         self.fwDetail = detailArr
-    
+
     def initJSLib(self):
         pref = '../res/plugins/datatables'
         for js in self.FRAMEWORK_JS_LIB:
             self.addJSLib(pref + js)
-    
+
     def initCSS(self):
         pref = "../res/plugins/datatables-"
         for css in self.FRAMEWORK_CSS_LIB:
@@ -87,16 +106,16 @@ class FrameworkPageBuilder(PageBuilder):
     def buildContentSummary(self):
         outp = []
         self.setFrameworkDetail(self.framework.generateMappingInformation())
-        
+
         summ = self.framework.generateGraphInformation()
-        
+
         # labels = self.COMPLIANCE_STATUS
         ss = []
         dnDataSets = {}
         for k, v in enumerate(summ['mcn']):
             ss.append("[{}:{}]".format(self.COMPLIANCE_STATUS[k], v))
             dnDataSets[self.COMPLIANCE_STATUS[k]] = v
-            
+
         _m = []
         _c = []
         _n = []
@@ -104,13 +123,13 @@ class FrameworkPageBuilder(PageBuilder):
         bcDataSets = {}
         for _st in self.COMPLIANCE_STATUS:
             bcDataSets[_st] = []
-            
+
         for k, v in summ['stats'].items():
             bcLabels.append(k)
             _m.append(v[0])
             _c.append(v[1])
             _n.append(v[2])
-            
+
         for idx, _st in enumerate(self.COMPLIANCE_STATUS):
             if idx == 0:
                 bcDataSets[_st] = _m
@@ -118,57 +137,66 @@ class FrameworkPageBuilder(PageBuilder):
                 bcDataSets[_st] = _c
             if idx == 2:
                 bcDataSets[_st] = _n
-        
+
         ## Desc + Summary Doughnut
         html = self.headerInfo['description'] + "<br>" + "<a href='{}' target=_blank rel='noopener noreferrer'>Read more</a>".format(self.headerInfo['_'])
         card = self.generateCard('Framework', html, cardClass='warning', title=self.headerInfo['fullname'], titleBadge='', collapse=True, noPadding=False)
         items = [[card, '']]
-        
+
         pid=self.getHtmlId('SummaryDoughnut')
         html = self.generateDonutPieChart(dnDataSets)
         card = self.generateCard(pid, html, cardClass='warning', title='Summary: ' + " | ".join(ss), titleBadge='', collapse=True, noPadding=False)
         items.append([card, ''])
         outp.append(self.generateRowWithCol(size=6, items=items, rowHtmlAttr="data-context='Brief'"))
-        
+
         ## Barchart, full length
         pid=self.getHtmlId('SummaryBarChart')
         html = self.generateBarChart(bcLabels, bcDataSets)
         card = self.generateCard(pid, html, cardClass='warning', title='Breakdown', titleBadge='', collapse=True, noPadding=False)
-        
+
         items = [[card, '']]
         outp.append(self.generateRowWithCol(size=12, items=items, rowHtmlAttr="data-context='summaryChart'"))
-        
+
         return outp
-    
+
     def buildContentDetail(self):
         outp = []
         items = []
         # tabTitle = self.fwTitle
         self._hookPreBuildContentDetail()
-        
+
         item = self.generateCard(pid=self.headerInfo['shortname'], html=self.customBuildTableHTML(), cardClass='warning', title=self.generateTitleWithCategory('Framework', self.headerInfo['fullname'], self.headerInfo['shortname']), titleBadge='', collapse=False, noPadding=False)
         items.append([item, ''])
-        
+
         outp.append(self.generateRowWithCol(size=12, items=items, rowHtmlAttr="data-context=detail"))
 
         self.framework._hookPostBuildContentDetail()
-        
+
+        # Allow framework-specific subclasses to inject extra UI (download
+        # buttons, banners, etc.) after the framework hook has run and produced
+        # any artifacts it needs.
+        self._postBuildContentDetailHook()
+
         return (outp)
-        
+
+    def _postBuildContentDetailHook(self):
+        """Override in subclasses for framework-specific post-processing."""
+        pass
+
     # To be overwrite by custom class
     def _hookPreBuildContentDetail(self):
         pass
 
     def customBuildTableHTML(self):
         outp = []
-        
+
         ##Build Header
         s = "<table id='{}' class='table table-bordered table-striped'> <thead><tr>".format(self.HTML_TABLE_ID)
         for _h in ['Category', 'Rule ID', 'Compliance Status', 'Description', 'Reference']:
             s += "<th>" + _h + "</th>"
         s += "</tr></thead>"
         outp.append(s)
-        
+
         s = "<tbody>"
         for rows in self.fwDetail:
             s += "<tr>"
@@ -177,14 +205,14 @@ class FrameworkPageBuilder(PageBuilder):
                 tmp = col
                 if i == 2:
                     s += self.formatComplyCell(col)
-                else: 
+                else:
                     s += "<td>" + col + "</td>"
-                
+
             s+= "</tr>"
         s += "</tbody></table>"
         outp.append(s)
         return "\n".join(outp)
-    
+
     def addDataTableJS(self):
         s = '''
 $("#{htmlID}").DataTable({{
@@ -193,14 +221,14 @@ $("#{htmlID}").DataTable({{
       "buttons": ["copy", "csv", "colvis"]
     }}).buttons().container().appendTo('#{htmlID}_wrapper .col-md-6:eq(0)');
 '''.format(htmlID=self.HTML_TABLE_ID)
-        
+
         self.addJS(s)
-        
+
     def formatComplyCell(self, col):
         # 0 = No Check available
         # 1 = Comply
         #-1 = Not Comply
-        palette = "bg-info" 
+        palette = "bg-info"
         s = self.COMPLIANCE_STATUS[0]
         if col == 1:
             palette = "bg-success"
@@ -208,20 +236,20 @@ $("#{htmlID}").DataTable({{
         elif col == -1:
             palette = "bg-danger"
             s = self.COMPLIANCE_STATUS[2]
-            
+
         return "<td class='{} color-palette'>{}</td>".format(palette, s)
-        
+
 if __name__ == "__main__":
     import constants as _C
     from utils.Config import Config
-    
+
     Config.init()
     Config.set('cli_services', {'ec2': 2, 'iam': 1, 'cloudfront': 5})
     Config.set('cli_frameworks', ['WAFS'])
     Config.set('cli_regions', ['ap-southeast-1'])
-    
+
     samples = [['Main', 'ARC-002', 0, [], []], ['Main', 'ARC-003', -1, "<dl><dt><i class='fas fa-times'></i> [rootMfaActive]</dt><dd>Enable MFA on root user<br><small>{'GLOBAL': ['User::<b>root_id</b>']}</small></dd><dt><i class='fas fa-times'></i> [mfaActive]</dt><dd>Enable MFA on IAM user.<br><small>{'GLOBAL': ['User::ttttt']}</small></dd></dl>", "<a href='https://aws.amazon.com/iam/features/mfa/'>AWS Docs</a><br><a href='https://aws.amazon.com/iam/features/mfa/'>AWS Docs</a>"], ['Main', 'IAM-001', -1, "<dl><dt><i class='fas fa-times'></i> [mfaActive]</dt><dd>Enable MFA on IAM user.<br><small>{'GLOBAL': ['User::ttttt']}</small></dd></dl>", "<a href='https://aws.amazon.com/iam/features/mfa/'>AWS Docs</a>"], ['Main', 'IAM-002', 1, "<dl><dt><i class='fas fa-check'></i> [passwordLastChange90]</i></dt><dt><i class='fas fa-check'></i> [passwordLastChange365]</i></dt></dl>", ''], ['Main', 'IAM-003', -1, "<dl><dt><i class='fas fa-times'></i> [passwordPolicyWeak]</dt><dd>Set a stronger password policy<br><small>{'GLOBAL': ['Account::Config']}</small></dd><dt><i class='fas fa-check'></i> [passwordPolicy]</i></dt></dl>", "<a href='https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html#configure-strong-password-policy'>AWS Docs</a>"], ['Main', 'IAM-007', 1, "<dl><dt><i class='fas fa-check'></i> [consoleLastAccess90]</i></dt><dt><i class='fas fa-check'></i> [consoleLastAccess365]</i></dt></dl>", '']]
-    
+
     data = json.loads(open(_C.FRAMEWORK_DIR + '/api.json').read())
     o = FrameworkPageBuilder('WAFS', data)
     p = o.buildPage()

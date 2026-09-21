@@ -1,0 +1,189 @@
+{
+    "appsyncNoAuthentication": {
+        "category": "S",
+        "^description": "{$COUNT} AppSync GraphQL API(s) authenticate exclusively with an API key. An API key is a single static secret shared by every client: it identifies no caller, so authorisation cannot vary per user; it cannot be revoked for one client without breaking all of them; and it appears in client-side code, browser network tabs and mobile app bundles where it is trivially extracted. Use AWS_IAM, Cognito user pools, OIDC or a Lambda authoriser as the primary mode.",
+        "shortDesc": "Use a strong authentication mode, not only an API key",
+        "criticality": "H",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 1,
+        "ref": [
+            "[Authorization and authentication]<https://docs.aws.amazon.com/appsync/latest/devguide/security-authz.html>",
+            "[Security Hub control AppSync.5]<https://docs.aws.amazon.com/securityhub/latest/userguide/appsync-controls.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/appsync/latest/devguide/security-authz.html"
+    },
+    "appsyncIntrospectionEnabled": {
+        "category": "S",
+        "^description": "{$COUNT} AppSync GraphQL API(s) have introspection enabled. Introspection lets any client download the complete schema \u2014 every type, field, argument and mutation, including ones intended only for internal callers. For an attacker this removes all guesswork: it is a published map of the API's entire attack surface, including the mutations most worth attempting. Introspection is valuable in development and should be disabled in production.",
+        "shortDesc": "Disable GraphQL introspection on production APIs",
+        "criticality": "M",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 1,
+        "ref": [
+            "[Introspection configuration]<https://docs.aws.amazon.com/appsync/latest/devguide/configuring-introspection.html>",
+            "[Securing your API]<https://docs.aws.amazon.com/appsync/latest/devguide/security.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/appsync/latest/devguide/configuring-introspection.html"
+    },
+    "appsyncWafNotAssociated": {
+        "category": "S",
+        "^description": "{$COUNT} internet-facing AppSync GraphQL API(s) have no WAFv2 WebACL. There is then no rate limiting, no managed rule protection against common injection patterns, and no bot control in front of a public GraphQL endpoint \u2014 and GraphQL is unusually easy to abuse, because a single well-formed request can be made arbitrarily expensive. Private (VPC-only) APIs are excluded from this check.",
+        "shortDesc": "Associate a WAFv2 WebACL with the API",
+        "criticality": "H",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 1,
+        "ref": [
+            "[Using AWS WAF to protect your API]<https://docs.aws.amazon.com/appsync/latest/devguide/WAF-Integration.html>",
+            "[Securing your API]<https://docs.aws.amazon.com/appsync/latest/devguide/security.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/appsync/latest/devguide/WAF-Integration.html"
+    },
+    "appsyncApiKeyNoExpiry": {
+        "category": "S",
+        "^description": "{$COUNT} AppSync API(s) have keys valid for more than a year. A static key with a very long life is effectively permanent: because it is embedded in clients, it leaks eventually, and a leaked key remains valid for as long as it takes someone to notice and rotate it. Short expiry forces rotation to be an operational habit rather than an incident response.",
+        "shortDesc": "Shorten long-lived API key expiry",
+        "criticality": "M",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[API keys]<https://docs.aws.amazon.com/appsync/latest/devguide/security-authz.html>",
+            "[Managing API keys]<https://docs.aws.amazon.com/appsync/latest/devguide/security-authz.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/appsync/latest/devguide/security-authz.html"
+    },
+    "appsyncApiKeyExpiringSoon": {
+        "category": "R",
+        "^description": "{$COUNT} AppSync API(s) have keys expiring within a week. When an AppSync API key expires, every client using it immediately starts receiving authentication errors \u2014 an availability incident with a known date that nobody has diaried. Rotate ahead of the expiry rather than discovering it from a client outage.",
+        "shortDesc": "Rotate API keys before they expire",
+        "criticality": "M",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[API keys]<https://docs.aws.amazon.com/appsync/latest/devguide/security-authz.html>",
+            "[Managing API keys]<https://docs.aws.amazon.com/appsync/latest/devguide/security-authz.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/appsync/latest/devguide/security-authz.html"
+    },
+    "appsyncNoQueryDepthLimit": {
+        "category": "P",
+        "^description": "{$COUNT} AppSync GraphQL API(s) have no queryDepthLimit. GraphQL allows a client to nest a query arbitrarily deep, and each level of nesting can multiply the number of resolver invocations. Without a depth limit, one small crafted request can expand into an enormous amount of backend work \u2014 a denial-of-service that requires no traffic volume at all, only a well-chosen query.",
+        "shortDesc": "Set a query depth limit",
+        "criticality": "M",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Query depth and resolver limits]<https://docs.aws.amazon.com/appsync/latest/devguide/quotas.html>",
+            "[Configuring quotas]<https://docs.aws.amazon.com/appsync/latest/devguide/quotas.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/appsync/latest/devguide/quotas.html"
+    },
+    "appsyncNoResolverCountLimit": {
+        "category": "P",
+        "^description": "{$COUNT} AppSync GraphQL API(s) have no resolverCountLimit. This limit caps how many resolvers a single query may invoke, which bounds both the cost of one request and the load it can place on downstream data sources. Without it, a broad query can fan out across an unbounded number of resolvers, each billed and each consuming database or Lambda capacity.",
+        "shortDesc": "Set a resolver count limit",
+        "criticality": "M",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Query depth and resolver limits]<https://docs.aws.amazon.com/appsync/latest/devguide/quotas.html>",
+            "[Configuring quotas]<https://docs.aws.amazon.com/appsync/latest/devguide/quotas.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/appsync/latest/devguide/quotas.html"
+    },
+    "appsyncFieldLevelLogging": {
+        "category": "O",
+        "^description": "{$COUNT} AppSync GraphQL API(s) have fieldLogLevel set to NONE or no log configuration at all. Field-level logs are what attribute a GraphQL error or a slow response to the specific resolver responsible; without them a partial failure shows up as an opaque error on the client with no server-side trail to follow. This is Security Hub control AppSync.2.",
+        "shortDesc": "Enable field-level logging",
+        "criticality": "M",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 1,
+        "needFullTest": 0,
+        "ref": [
+            "[CloudWatch logging]<https://docs.aws.amazon.com/appsync/latest/devguide/monitoring.html>",
+            "[Security Hub control AppSync.2]<https://docs.aws.amazon.com/securityhub/latest/userguide/appsync-controls.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/appsync/latest/devguide/monitoring.html"
+    },
+    "appsyncCloudWatchLogsNotEnabled": {
+        "category": "O",
+        "^description": "{$COUNT} AppSync GraphQL API(s) have no cloudWatchLogsRoleArn, so nothing is written to CloudWatch Logs. There is then no request record for the API at all \u2014 neither for debugging a client integration nor for investigating abuse after the fact. This is the prerequisite for field-level logging to have anywhere to write.",
+        "shortDesc": "Configure a CloudWatch Logs role",
+        "criticality": "M",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 1,
+        "needFullTest": 0,
+        "ref": [
+            "[Setting up CloudWatch logging]<https://docs.aws.amazon.com/appsync/latest/devguide/monitoring.html>",
+            "[Monitoring and logging]<https://docs.aws.amazon.com/appsync/latest/devguide/monitoring.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/appsync/latest/devguide/monitoring.html"
+    },
+    "appsyncXrayTracingDisabled": {
+        "category": "O",
+        "^description": "{$COUNT} AppSync GraphQL API(s) have X-Ray tracing disabled. A GraphQL request typically fans out across several resolvers and data sources, so when a response is slow the interesting question is which of them was responsible \u2014 and that is precisely what a trace answers and aggregate metrics cannot.",
+        "shortDesc": "Enable X-Ray tracing",
+        "criticality": "L",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 1,
+        "needFullTest": 0,
+        "ref": [
+            "[Tracing with X-Ray]<https://docs.aws.amazon.com/appsync/latest/devguide/x-ray-tracing.html>",
+            "[Monitoring and logging]<https://docs.aws.amazon.com/appsync/latest/devguide/monitoring.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/appsync/latest/devguide/x-ray-tracing.html"
+    },
+    "appsyncNoTags": {
+        "category": "O",
+        "^description": "{$COUNT} AppSync GraphQL API(s) carry no tags, so they cannot be attributed to an owning team or environment. GraphQL APIs are commonly created per front-end or per experiment and then outlive the project that needed them; an untagged one is the API nobody will delete because nobody can establish who still calls it.",
+        "shortDesc": "Tag the API with owner and environment",
+        "criticality": "L",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Tagging resources]<https://docs.aws.amazon.com/appsync/latest/devguide/tagging-resources.html>",
+            "[Tagging AWS resources]<https://docs.aws.amazon.com/tag-editor/latest/userguide/tagging.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/appsync/latest/devguide/tagging-resources.html"
+    }
+}

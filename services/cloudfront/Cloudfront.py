@@ -14,15 +14,16 @@ from utils.Tools import _pi
 class Cloudfront(Service):
     def __init__(self, region):
         super().__init__(region)
-        
+
         ssBoto = self.ssBoto
         self.cloudfrontClient = ssBoto.client('cloudfront')
-        
+        self.s3Client = ssBoto.client('s3')
+
     def getDistributions(self):
-        
+
         response = self.cloudfrontClient.list_distributions()
         arr = []
-        
+
         while True:
             if "DistributionList" in response and "Items" in response["DistributionList"]:
                 for dist in response["DistributionList"]["Items"]:
@@ -31,34 +32,34 @@ class Cloudfront(Service):
                         myTags = self.cloudfrontClient.list_tags_for_resource(Resource=dist['ARN'])
                         if self.resourceHasTags(myTags.get('Tags')['Items']) == False:
                             toAppend = False
-                           
-                    if toAppend:    
+
+                    if toAppend:
                         arr.append(dist["Id"])
-                        
+
                 if "NextMarker" not in response["DistributionList"]:
                     break
-    
+
                 response = self.cloudfrontClient.list_distributions(Marker=response["DistributionList"]["NextMarker"])
             else:
                 break
-        
+
         return arr
-        
-    
+
+
     def advise(self):
         objs = {}
-        
+
         dists = self.getDistributions()
         for dist in dists:
             _pi('CloudFront::Distribution', dist)
-            obj = cloudfrontDist(dist, self.cloudfrontClient)
+            obj = cloudfrontDist(dist, self.cloudfrontClient, self.s3Client)
             obj.run(self.__class__)
-            
+
             objs['Cloudfront::' + dist] = obj.getInfo()
             del obj
-        
+
         return objs
-    
+
 
 if __name__ == "__main__":
     Config.init()

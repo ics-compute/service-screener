@@ -16,22 +16,22 @@ import re
 
 class CloudwatchTrails(Evaluator):
     ## WOMA = without metrics & alarm
-    ## "$.userIdentity.type", "=", "Root" 
+    ## "$.userIdentity.type", "=", "Root"
     ## ==> \$.userIdentity.type\s*=\s*[\'\"]*Root[\'\"']*
     CISMetricsMap = [
-        {'trailWOMAroot1': [ 
+        {'trailWOMAroot1': [
                 ["$.userIdentity.type", "=", "Root"]
             ]
         },
         {'trailWOMAunauthAPI2': [
-                ["$.errorCode", "=", r"\*UnauthorizedOperation"], 
+                ["$.errorCode", "=", r"\*UnauthorizedOperation"],
                 ["$.errorCode", "=", r"AccessDenied\*"]
             ]
         },
         {'trailWOMAnoMFA3': [
-                ["$.eventName", "=", "ConsoleLogin"], 
-                ["$.additionalEventData.MFAUsed", "!=", "Yes"], 
-                ["$.userIdentity.type", "=", "IAMUser"], 
+                ["$.eventName", "=", "ConsoleLogin"],
+                ["$.additionalEventData.MFAUsed", "!=", "Yes"],
+                ["$.userIdentity.type", "=", "IAMUser"],
                 ["$.responseElements.ConsoleLogin", "=", "Success"]
             ]
         },
@@ -148,40 +148,40 @@ class CloudwatchTrails(Evaluator):
             ]
         }
     ]
-    
+
     CISMetricsMapRegex = {}
     logMetricsFilterPattern = []
-    
+
     def __init__(self, log, logname, logClient):
         super().__init__()
         self.init()
-        
+
         self.logClient = logClient
         self.log = log
         self.logname = logname
 
         self._resourceName = logname
-        
+
         self.metricsInfo = []
-        
+
         self.CISMetricsMapRegex = Config.get('Logs::CISMetricsMapRegex', {})
         if len(self.CISMetricsMapRegex) == 0:
             for lists in self.CISMetricsMap:
                 for check, rules in lists.items():
                     self.CISMetricsMapRegex[check] = self.regexBuilder(rules)
-            
+
             Config.set('Logs::CISMetricsMapRegex', self.CISMetricsMapRegex)
-    
+
         return
-    
+
     def regexBuilder(self, rules):
         regexPatterns = []
         for rule in rules:
             regexPattern = r"\\" + rule[0] + r"\s*\\" + rule[1] + r"\s*[\'\"]*" + rule[2] + r"[\'\"]*"
             regexPatterns.append(regexPattern)
-        
+
         return regexPatterns
-    
+
     # Loop available cloudwatch log metrics in logGroup
     def getAllMetrics(self, nextToken=None):
         args = {"logGroupName": self.log[2]}
@@ -192,10 +192,10 @@ class CloudwatchTrails(Evaluator):
         metricFilters = resp.get('metricFilters')
         for filters in metricFilters:
             self.logMetricsFilterPattern.append(filters['filterPattern'])
-        
+
         if resp.get('nextToken'):
             self.getAllMetrics(resp.get('nextToken'))
-    
+
     # write a function to loop through all regex pattern in self.CISMetricsMapRegex, and regex checks again array of string in self.logMetricsFilterPattern
     def regexFindCISPatterns(self):
         for check, rules in self.CISMetricsMapRegex.items():
@@ -210,13 +210,13 @@ class CloudwatchTrails(Evaluator):
                         cnt = cnt + 1
                         # self.results[check] = [-1, None]
                         # break
-                
+
                 if len(rules) == cnt:
-                    del self.results[check] 
+                    del self.results[check]
                     break
 
         return
-    
+
     ###### TO DO #####
     ## Change the method name to meaningful name
     ## Check methods name must follow _check[Description]
@@ -224,16 +224,23 @@ class CloudwatchTrails(Evaluator):
         if self.log[1] == None:
             self.results['trailWithoutCWLogs'] = [-1, None]
             return
-        
+
         args = {"logGroupNamePrefix": self.log[2]}
-        
+
         resp = self.logClient.describe_log_groups(**args)
-        logDetail = resp.get('logGroups')[0]
-        
-        if logDetail['metricFilterCount'] == 0:
+        logGroups = resp.get('logGroups', [])
+
+        # Check if log group exists
+        if not logGroups or len(logGroups) == 0:
+            self.results['trailWithoutCWLogs'] = [-1, None]
+            return
+
+        logDetail = logGroups[0]
+
+        if logDetail.get('metricFilterCount', 0) == 0:
             self.results['trailWithCWLogsWithoutMetrics'] = [-1, None]
             return
-        
+
         self.getAllMetrics()
         self.regexFindCISPatterns()
 

@@ -1,9 +1,9 @@
-import boto3, json, botocore
+import boto3, json, botocore, base64, os
 from botocore.exceptions import BotoCoreError
 from botocore.config import Config as bConfig
 from utils.Config import Config
 from datetime import datetime
-from utils.Tools import _warn
+from utils.Tools import _warn, _info
 import time
 
 ## --others '{"WA": {"region": "ap-southeast-1", "reportName":"SS_Report", "newMileStone":0}}'
@@ -41,11 +41,11 @@ class WATools():
 
         print("*** [WATool] Attempting to deploy WA Tools in this region: {}".format(params['region']))
         self.region = params['region']
-        
+
         return True
 
     def init(self, cfg):
-        self.cfg = cfg 
+        self.cfg = cfg
         self.stsInfo = Config.get('stsInfo')
 
         boto3Config = bConfig(region_name = cfg['region'])
@@ -66,14 +66,14 @@ class WATools():
             # Check if any workload matches the exact name
             for workload in response.get('WorkloadSummaries', []):
                 if workload['WorkloadName'] == workload_name:
-                    self.waInfo['isExists'] = True 
+                    self.waInfo['isExists'] = True
                     self.waInfo['WorkloadId'] = workload['WorkloadId']
 
         except Exception as e:
             _warn(f"Error checking if workload exists: {str(e)}")
             self.HASPERMISSION = False
             return False, None
-        
+
     def createReportIfNotExists(self):
         workload_name = self.cfg['reportName']
         self.checkIfReportExists()
@@ -102,7 +102,7 @@ class WATools():
             self.HASPERMISSION = False
             print(f"An error occurred while creating the workload: {str(e)}")
             return False
-        
+
     def _get_latest_milestone(self):
         """Helper method to get the latest milestone for a workload"""
         all_milestones = []
@@ -151,26 +151,114 @@ class WATools():
         except BotoCoreError as e:
             print(f"An error occurred: {str(e)}")
             return None
-        
+
+    def generateReviewReport(self, output_dirs=None, lensAlias=None):
+        """Generate a Well-Architected Framework Review report (PDF) for the workload
+        and save it to the provided output directories.
+
+        Args:
+            output_dirs (list[str]): list of absolute directory paths to save the PDF to.
+            lensAlias (str): lens alias/ARN. Defaults to the lens used by this workload.
+
+        Returns:
+            list[str]: list of absolute file paths that were written. Empty list on failure.
+        """
+        if self.HASPERMISSION is False:
+            _warn("[WATools] No permission to generate WA Review report, skipped")
+            return []
+
+        if not self.waInfo.get('WorkloadId'):
+            _warn("[WATools] No WorkloadId available, skip generating WA Review report")
+            return []
+
+        if not lensAlias:
+            lensAlias = self.waInfo.get('LensesAlias', 'wellarchitected')
+
+        if output_dirs is None:
+            output_dirs = []
+
+        # Build report file name with workload + timestamp + milestone (if any)
+        cdate = datetime.now().strftime('%Y%m%d-%H%M%S')
+        workload_name = self.cfg.get('reportName', self.DEFAULT_REPORTNAME)
+        milestoneNumber = self.waInfo.get('MilestoneNumber')
+
+        try:
+            apiArgs = {
+                'WorkloadId': self.waInfo['WorkloadId'],
+                'LensAlias': lensAlias
+            }
+            if milestoneNumber:
+                apiArgs['MilestoneNumber'] = milestoneNumber
+
+            _info(f"[WATools] Generating WA Review report (workload={workload_name}, lens={lensAlias})")
+            resp = self.waClient.get_lens_review_report(**apiArgs)
+        except botocore.exceptions.ClientError as e:
+            error_code = e.response.get('Error', {}).get('Code', '')
+            if error_code in ('AccessDeniedException', 'AccessDenied'):
+                _warn(f"[WATools] Access denied when calling GetLensReviewReport: {str(e)}")
+                self.HASPERMISSION = False
+            else:
+                _warn(f"[WATools] Failed to get lens review report: {str(e)}")
+            return []
+        except Exception as e:
+            _warn(f"[WATools] Unexpected error generating review report: {str(e)}")
+            return []
+
+        report = resp.get('LensReviewReport', {})
+        b64 = report.get('Base64String')
+        if not b64:
+            _warn("[WATools] GetLensReviewReport returned no Base64String content")
+            return []
+
+        try:
+            pdfBytes = base64.b64decode(b64)
+        except Exception as e:
+            _warn(f"[WATools] Failed to decode review report base64 content: {str(e)}")
+            return []
+
+        # Build sanitized filename
+        safe_name = ''.join(c if c.isalnum() or c in ('-', '_') else '_' for c in workload_name)
+        ms_part = f"-m{milestoneNumber}" if milestoneNumber else ""
+        filename = f"WAFR_{safe_name}{ms_part}_{cdate}.pdf"
+
+        written = []
+        for d in output_dirs:
+            try:
+                if not d:
+                    continue
+                os.makedirs(d, exist_ok=True)
+                full = os.path.join(d, filename)
+                with open(full, 'wb') as f:
+                    f.write(pdfBytes)
+                written.append(full)
+                _info(f"[WATools] WA Review report saved: {full}")
+            except Exception as e:
+                _warn(f"[WATools] Failed to save WA Review report to {d}: {str(e)}")
+
+        # Expose the latest filename so the page builder can render a download link
+        self.waInfo['LatestReportFilename'] = filename
+        self.waInfo['LatestReportPaths'] = written
+        return written
+
     def createMilestone(self):
         max_retries = 3
         retry_delay = 2  # seconds
-        
+
         for attempt in range(1, max_retries + 1):
             cdate = datetime.now().strftime('%Y%m%d%H%M%S')
             milestoneName = f'SS-{cdate}-{attempt}'
-            
+
             try:
                 resp = self.waClient.create_milestone(
                     WorkloadId=self.waInfo['WorkloadId'],
                     MilestoneName=milestoneName
                 )
-                
+
                 print(f"Milestone Number: {resp['MilestoneNumber']}")
                 self.waInfo['MilestoneName'] = milestoneName
                 self.waInfo['MilestoneNumber'] = resp['MilestoneNumber']
                 return True
-                
+
             except Exception as e:
                 if 'ConflictException' in str(e.__class__) or 'Conflict' in str(e):
                     print(f"Attempt {attempt}/{max_retries}: Milestone conflict: {str(e)}")
@@ -178,7 +266,7 @@ class WATools():
                         print(f"Retrying in {retry_delay} seconds...")
                         time.sleep(retry_delay)
                         continue
-                    
+
                     # All retries failed, try to get existing milestone
                     print("All creation attempts failed, trying to use existing milestone")
                     try:
@@ -194,12 +282,12 @@ class WATools():
                 else:
                     # Re-raise if it's not a conflict exception
                     raise
-                    
+
             except BotoCoreError as e:
                 self.HASPERMISSION = False
                 _warn(f"An error occurred while creating the milestone: {str(e)}")
                 return None
-        
+
     def listAnswers(self):
         if self.HASPERMISSION == False:
             return None
@@ -228,7 +316,7 @@ class WATools():
                 if currAttempt >= maxRetry:
                     break
                 time.sleep(3)
-                
+
         if isSuccess == False:
             print("*** [WATools] Unable to retrieve list of checklists, skipped WATool integration")
             return None
@@ -263,37 +351,84 @@ class WATools():
                 fkey = f'{i:02}::{j:02}'
                 answerSets[fkey] = [choice['ChoiceId'], choice['Title']]
                 j = j+1
-        
+
             i = i+1
-            
+
         self.answerSets = answerSets
-    
+
     def updateAnswers(self, questionId, selectedChoices, unselectedNotes):
         if self.HASPERMISSION == False:
             return None
 
-        # Skip if questionId is None
-        if questionId is None:
-            _warn(f"[WATOOLS]: Skipping update for None questionId")
+        # Skip if questionId is None or empty
+        if questionId is None or questionId == '':
+            _warn(f"[WATOOLS]: Skipping update for invalid questionId: {questionId}")
             return None
 
-        # Ensure selectedChoices is not empty
+        # Validate and clean selectedChoices
         if not selectedChoices:
             selectedChoices = []
+        elif isinstance(selectedChoices, str):
+            # If it's a string, convert to list
+            selectedChoices = [selectedChoices] if selectedChoices.strip() else []
+        elif isinstance(selectedChoices, list):
+            # Filter out None and empty values, then remove duplicates
+            original_count = len(selectedChoices)
+            selectedChoices = [choice for choice in selectedChoices if choice is not None and choice != '']
+            # Remove duplicates while preserving order
+            selectedChoices = list(dict.fromkeys(selectedChoices))
+
+            # Log if duplicates were found
+            if len(selectedChoices) != original_count:
+                _warn(f"[WATOOLS]: Removed duplicates/empty values for question {questionId}: {original_count} -> {len(selectedChoices)}")
+        else:
+            _warn(f"[WATOOLS]: Invalid selectedChoices type: {type(selectedChoices)}, converting to empty list")
+            selectedChoices = []
+
+        # Validate and clean unselectedNotes
+        if unselectedNotes is None:
+            unselectedNotes = ""
+        elif not isinstance(unselectedNotes, str):
+            unselectedNotes = str(unselectedNotes)
+
+        # Truncate notes if too long (AWS limit is typically 2048 characters)
+        if len(unselectedNotes) > 2000:
+            unselectedNotes = unselectedNotes[:1997] + "..."
+            _warn(f"[WATOOLS]: Truncated notes for question {questionId} (too long)")
 
         ansArgs = {
             'WorkloadId': self.waInfo['WorkloadId'],
             'LensAlias': self.waInfo['LensesAlias'],
-            'QuestionId': questionId, 
+            'QuestionId': questionId,
             'SelectedChoices': selectedChoices,
             'Notes': unselectedNotes
         }
 
         try:
-            resp = self.waClient.update_answer(**ansArgs)
-        except Exception as e:
-            _warn(f"[ERROR - WATOOLS]: {str(e)}")
-            self.HASPERMISSION = False
-            return None
+            # Additional validation before API call
+            if not self.waInfo.get('WorkloadId'):
+                _warn(f"[WATOOLS]: No WorkloadId available, skipping update for question {questionId}")
+                return None
 
-        pass
+            if not self.waInfo.get('LensesAlias'):
+                _warn(f"[WATOOLS]: No LensAlias available, skipping update for question {questionId}")
+                return None
+
+            resp = self.waClient.update_answer(**ansArgs)
+            return resp
+
+        except Exception as e:
+            error_msg = str(e)
+            if 'ValidationException' in error_msg:
+                _warn(f"[ERROR - WATOOLS]: Validation failed for question {questionId}")
+                _warn(f"[ERROR - WATOOLS]: QuestionId: {questionId}")
+                _warn(f"[ERROR - WATOOLS]: SelectedChoices: {selectedChoices}")
+                _warn(f"[ERROR - WATOOLS]: Notes length: {len(unselectedNotes)}")
+                _warn(f"[ERROR - WATOOLS]: Validation error: {error_msg}")
+            else:
+                _warn(f"[ERROR - WATOOLS]: {error_msg}")
+
+            # Don't disable permissions for validation errors, just skip this update
+            if 'ValidationException' not in error_msg:
+                self.HASPERMISSION = False
+            return None

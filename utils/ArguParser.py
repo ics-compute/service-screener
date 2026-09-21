@@ -12,10 +12,10 @@ class ArguParser:
         "f": "filters",
         "u": "suppress_file"
     }
-    
+
     CLI_ARGUMENT_RULES = {
         "regions": {
-            "required": False, 
+            "required": False,
             # "errmsg": "Please key in --region, example: --region ap-southeast-1",
             "default": None,
             "help": "--regions ap-southeast-1,ap-southeast-2"
@@ -23,7 +23,7 @@ class ArguParser:
         "services": {
             "required": False,
             "emptymsg": "Missing --services, using default value: $defaultValue",
-            "default": "rds,ec2,iam,s3,efs,lambda,guardduty,cloudfront,cloudtrail,elasticache,eks,dynamodb,opensearch,kms,cloudwatch,redshift,apigateway,sqs",
+            "default": "rds,ec2,iam,s3,efs,lambda,guardduty,cloudfront,cloudtrail,elasticache,eks,dynamodb,opensearch,kms,cloudwatch,redshift,apigateway,sqs,glue,sagemaker,bedrock,stepfunctions,sns,wafv2,cognito,acm,kinesis,firehose,ecr,backup,ecs,route53,secretsmanager,eventbridge,config,ssm,codebuild,accessanalyzer,securityhub,inspector,athena,appsync,emr,cloudformation",
             "help": "--services ec2,iam"
         },
         "debug": {
@@ -79,7 +79,7 @@ class ArguParser:
         'beta': {
             "required": False,
             "default": False,
-            "help": "Enable Beta features"
+            "help": "Enable Beta features (API Buttons, Cloudscape UI)"
         },
         'suppress_file': {
             "required": False,
@@ -89,14 +89,19 @@ class ArguParser:
         'sequential': {
             "required": False,
             "default": False,
-            "help": "Run checks sequentially instead of parallel (fixes macOS hanging issues)"
+            "help": "Run checks sequentially instead of concurrent (default: concurrent for better performance)"
+        },
+        'disable-custom-pages': {
+            "required": False,
+            "default": False,
+            "help": "Disable custom pages processing (COH, TA, Findings, Modernize) for faster scans. Only core service analysis will be performed."
         }
     }
 
     @staticmethod
     def Load():
         parser = argparse.ArgumentParser(prog='Screener', description='Service-Screener, open-source to check your AWS environment against AWS Well-Architected Pillars')
-    
+
         for k, v in ArguParser.CLI_ARGUMENT_RULES.items():
             # Get the short option from OPTLISTS if available, otherwise no short option
             short_opt = None
@@ -104,22 +109,22 @@ class ArguParser:
                 if long == k:
                     short_opt = short
                     break
-            
+
             if short_opt:
                 parser.add_argument('-' + short_opt, '--' + k, required=v['required'], default=v['default'], help=v.get('help', None))
             else:
                 parser.add_argument('--' + k, required=v['required'], default=v['default'], help=v.get('help', None))
-        
+
         parser.allow_abbrev = False
         args = vars(parser.parse_args())
-        
+
         return args
-        
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog='Screener', description='Service-Screener, open-source to check your AWS environment against AWS Well-Architected Pillars')
-    
+
     for k, v in ArguParser.CLI_ARGUMENT_RULES.items():
         parser.add_argument('-' + k[:1], '--' + k, required=v['required'], default=v['default'], help=v.get('help', None))
-    
+
     args = parser.parse_args()
     print(args.region)

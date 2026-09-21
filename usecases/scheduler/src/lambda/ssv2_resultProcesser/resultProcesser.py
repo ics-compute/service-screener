@@ -1,8 +1,10 @@
-import boto3 
+import boto3
 import json
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import os
+import shutil
+import tempfile
 import openpyxl
 import logging
 
@@ -28,10 +30,10 @@ def lambda_handler(event, context):
     region = event['region']
     targetBucket = record['bucket']['name']
     targetObject = record['object']['key']
-    
+
     s3 = boto3.client('s3', region_name=region)
     sns = boto3.client('sns', region_name=region)
-    
+
     filepath = targetObject.split('/')
     configId = filepath[0]
     currentDate = filepath[1]
@@ -50,7 +52,7 @@ def lambda_handler(event, context):
         objs = s3.list_objects_v2(Bucket=targetBucket, Prefix=configId + '/' + prefixSearch)
         contents = objs.get('Contents')
         if not contents:
-            continue 
+            continue
 
         contents.reverse()
         for file in contents:
@@ -68,7 +70,7 @@ def lambda_handler(event, context):
     for acct, info in accounts.items():
         html.append("\n AccountId: {} \n".format(acct))
         html.append( processXlsx(s3, targetBucket, configId, acct, info) )
-    
+
     res = sendSnsEmail(sns, configId, html)
     if res[0] == False:
         return  {
@@ -79,29 +81,28 @@ def lambda_handler(event, context):
     return successResp
 
 def processXlsx(s3, targetBucket, configId, acct, info):
-    latestObjname = "{}/{}/{}/workItem.xlsx".format(configId, info['currentRun'], acct)
-    s3.download_file(targetBucket, latestObjname, '/tmp/current.xlsx')
-    
-    loadXlsx('/tmp/current.xlsx')
+    tmpdir = tempfile.mkdtemp()
+    try:
+        currentPath = os.path.join(tmpdir, 'current.xlsx')
+        latestObjname = "{}/{}/{}/workItem.xlsx".format(configId, info['currentRun'], acct)
+        s3.download_file(targetBucket, latestObjname, currentPath)
 
-    previousObjname = None
-    hasPreviousObj = False
-    if 'previousRun' in info:
-        hasPreviousObj = True
-        previousObjname = "{}/{}/{}/workItem.xlsx".format(configId, info['previousRun'], acct)
-        s3.download_file(targetBucket, previousObjname, '/tmp/previous.xlsx')
-        loadXlsx('/tmp/previous.xlsx')
+        loadXlsx(currentPath, isCurrent=True)
 
-    compared = compareXlsx(hasPreviousObj)
-    html = formatCompared(compared, hasPreviousObj)
-    
-    os.remove('/tmp/current.xlsx')
-    if 'previousRun' in info:
-        os.remove('/tmp/previous.xlsx')
+        hasPreviousObj = False
+        if 'previousRun' in info:
+            hasPreviousObj = True
+            previousPath = os.path.join(tmpdir, 'previous.xlsx')
+            previousObjname = "{}/{}/{}/workItem.xlsx".format(configId, info['previousRun'], acct)
+            s3.download_file(targetBucket, previousObjname, previousPath)
+            loadXlsx(previousPath, isCurrent=False)
 
-    return html
+        compared = compareXlsx(hasPreviousObj)
+        return formatCompared(compared, hasPreviousObj)
+    finally:
+        shutil.rmtree(tmpdir, ignore_errors=True)
 
-def loadXlsx(filename):
+def loadXlsx(filename, isCurrent):
     wb = openpyxl.load_workbook(filename)
     for sheetName in wb.sheetnames:
         if sheetName in SHEETS_TO_SKIP:
@@ -124,8 +125,8 @@ def loadXlsx(filename):
             tcnt = tcnt + 1
 
             results.append('::'.join(_row))
-            
-        if filename == '/tmp/current.xlsx':
+
+        if isCurrent:
             currentResults[sheetName] = {'obj': results, 'High': hcnt, 'Total': tcnt}
         else:
             previousResults[sheetName] = {'obj': results, 'High': hcnt, 'Total': tcnt}
@@ -140,13 +141,13 @@ def compareXlsx(hasPreviousObj):
         if hasPreviousObj:
             diff = list(set(currentResults[sheets]['obj']) - set(previousResults[sheets]['obj']))
             newFindings = diff
-            
+
             diff = list(set(previousResults[sheets]['obj']) - set(currentResults[sheets]['obj']))
             resolvedItems = diff
 
             diffHigh = currentResults[sheets]['High'] - previousResults[sheets]['High']
             diffTotal = currentResults[sheets]['Total'] - previousResults[sheets]['Total']
-        
+
         nf = ""
         ri = ""
         if len(newFindings):
@@ -184,7 +185,7 @@ def formatCompared(compared, hasPreviousObj):
             if len(trow[5]):
                 totalNew = totalNew + trow[7]
                 news = news + [trow[5]]
-            
+
             if len(trow[6]):
                 totalResolved = totalResolved + trow[8]
                 resolved = resolved + [trow[6]]
@@ -215,7 +216,7 @@ def formatComparedHTML(compared, hasPreviousObj):
         thead.append("Resolved")
 
     theadHTML = ''.join(["<th>{}</th>".format(x) for x in thead])
-    
+
     tbodyHTML = []
     for row in compared:
         trow = [row[0], row[1], row[2]]
@@ -224,10 +225,10 @@ def formatComparedHTML(compared, hasPreviousObj):
             trow.append(row[4])
             trow.append(row[5])
             trow.append(row[6])
-        
+
         tbodyStr = ''.join(["<td>{}</td>".format(x) for x in trow])
         tbodyHTML.append("<tr>{}</tr>".format(tbodyStr))
-    
+
     tbodyHTML = ''.join(tbodyHTML)
     return template.format(theadHTML, tbodyHTML)
 

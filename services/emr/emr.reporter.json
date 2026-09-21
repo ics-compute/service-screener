@@ -1,0 +1,240 @@
+{
+    "emrBlockPublicAccessDisabled": {
+        "category": "S",
+        "^description": "{$COUNT} region(s) have EMR block public access disabled, or enabled with permissive exception ranges. This is an account-level guardrail: with it on, EMR refuses to launch a cluster whose security group allows ingress from 0.0.0.0/0 on any port outside the permitted list. With it off, nothing stops the next cluster being launched wide open \u2014 the check is reported even when no clusters currently exist, because the setting governs every future launch.",
+        "shortDesc": "Enable EMR block public access",
+        "criticality": "H",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 1,
+        "ref": [
+            "[Block public access]<https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-block-public-access.html>",
+            "[Security Hub control EMR.2]<https://docs.aws.amazon.com/securityhub/latest/userguide/emr-controls.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-block-public-access.html"
+    },
+    "emrNoSecurityConfiguration": {
+        "category": "S",
+        "^description": "{$COUNT} EMR cluster(s) have no security configuration attached. A security configuration is the only place EMR encryption at rest, encryption in transit, Kerberos authentication and EMRFS IAM role mapping can be set \u2014 so a cluster without one has none of them, regardless of what else is configured. EMR clusters typically process the largest and most sensitive datasets in an account.",
+        "shortDesc": "Attach a security configuration to the cluster",
+        "criticality": "H",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 1,
+        "ref": [
+            "[Security configurations]<https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-security-configurations.html>",
+            "[EMR encryption options]<https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-data-encryption-options.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-security-configurations.html"
+    },
+    "emrEncryptionAtRestDisabled": {
+        "category": "S",
+        "^description": "{$COUNT} EMR cluster(s) run a security configuration with at-rest encryption disabled. Data on local EBS volumes, in HDFS and in the EMRFS S3 layer is then written in clear text. Because EMR is used to process bulk datasets, the volume of data exposed by one misconfigured cluster is typically far larger than for any single application server.",
+        "shortDesc": "Enable at-rest encryption in the security configuration",
+        "criticality": "H",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 1,
+        "ref": [
+            "[Encryption at rest]<https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-data-encryption-options.html>",
+            "[Security configurations]<https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-security-configurations.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-data-encryption-options.html"
+    },
+    "emrEncryptionInTransitDisabled": {
+        "category": "S",
+        "^description": "{$COUNT} EMR cluster(s) run a security configuration with in-transit encryption disabled. Traffic between cluster nodes then crosses the network unencrypted \u2014 and in a distributed processing framework that traffic is the dataset itself, shuffled between nodes in bulk. Anyone able to observe the VPC network path sees the data being processed.",
+        "shortDesc": "Enable in-transit encryption in the security configuration",
+        "criticality": "H",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 1,
+        "ref": [
+            "[Encryption in transit]<https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-data-encryption-options.html>",
+            "[Security configurations]<https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-security-configurations.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-data-encryption-options.html"
+    },
+    "emrPubliclyAccessible": {
+        "category": "S",
+        "^description": "{$COUNT} EMR cluster(s) have a master node with a public IP address. The master hosts the cluster's management and application interfaces \u2014 YARN ResourceManager, Spark History Server, Hue, notebooks \u2014 and a public IP makes them reachable from the internet, gated only by security group rules. Launch clusters into private subnets and reach them through a bastion or Session Manager instead.",
+        "shortDesc": "Remove public IP addresses from EMR master nodes",
+        "criticality": "H",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 1,
+        "ref": [
+            "[Amazon EMR network configuration]<https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-vpc-host-job-flows.html>",
+            "[Security Hub control EMR.1]<https://docs.aws.amazon.com/securityhub/latest/userguide/emr-controls.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-vpc-host-job-flows.html"
+    },
+    "emrKerberosNotEnabled": {
+        "category": "S",
+        "^description": "{$COUNT} EMR cluster(s) have no Kerberos configuration. Without it the Hadoop ecosystem services authenticate nobody: any principal able to reach a service port gets whatever access that service grants, with no user identity attached to the request and therefore no per-user authorisation or audit trail.",
+        "shortDesc": "Configure Kerberos authentication",
+        "criticality": "M",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 1,
+        "ref": [
+            "[Use Kerberos authentication]<https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-kerberos.html>",
+            "[Security configurations]<https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-security-configurations.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-kerberos.html"
+    },
+    "emrTerminationProtectionDisabled": {
+        "category": "R",
+        "^description": "{$COUNT} EMR cluster(s) have termination protection disabled. An accidental console click or API call then terminates the cluster immediately, destroying any data held in HDFS on the cluster's own volumes and killing every in-flight job. For a long-running cluster this is an unrecoverable data loss, not merely an availability event.",
+        "shortDesc": "Enable termination protection",
+        "criticality": "M",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Termination protection]<https://docs.aws.amazon.com/emr/latest/ManagementGuide/UsingEMR_TerminationProtection.html>",
+            "[Managing clusters]<https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-manage.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/emr/latest/ManagementGuide/UsingEMR_TerminationProtection.html"
+    },
+    "emrLoggingDisabled": {
+        "category": "O",
+        "^description": "{$COUNT} EMR cluster(s) have no LogUri. Step logs, instance state logs and Hadoop component logs then live only on the cluster's own nodes, which means they disappear the moment it terminates. A failed job or a compromised cluster cannot be investigated after the fact, and for transient clusters that is nearly always after the fact.",
+        "shortDesc": "Configure a cluster log URI",
+        "criticality": "M",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 1,
+        "needFullTest": 0,
+        "ref": [
+            "[View log files archived to S3]<https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-manage-view-web-log-files.html>",
+            "[Configure logging]<https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-plan-debugging.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-manage-view-web-log-files.html"
+    },
+    "emrOldRelease": {
+        "category": "S",
+        "^description": "{$COUNT} EMR cluster(s) run an EMR release older than 6.x. Older releases bundle Hadoop, Spark, Hive and JVM versions that no longer receive security patches, so every known vulnerability in those components remains open on the cluster. EMR release upgrades are also the only supported route to patched versions of the bundled applications.",
+        "shortDesc": "Upgrade to a current EMR release",
+        "criticality": "M",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 1,
+        "ref": [
+            "[EMR release versions]<https://docs.aws.amazon.com/emr/latest/ReleaseGuide/emr-release-components.html>",
+            "[Managing clusters]<https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-manage.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-manage.html"
+    },
+    "emrAutoScalingDisabled": {
+        "category": "P",
+        "^description": "{$COUNT} EMR cluster(s) have no auto-scaling role and do not use instance fleets, so their capacity is fixed. A fixed cluster is simultaneously wasteful when idle and a bottleneck under load, and because EMR bills per instance-hour, the idle half of that trade-off is paid for continuously.",
+        "shortDesc": "Configure auto scaling",
+        "criticality": "M",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Using automatic scaling]<https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-automatic-scaling.html>",
+            "[Instance fleets]<https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-instance-fleet.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-automatic-scaling.html"
+    },
+    "emrStepConcurrencyLow": {
+        "category": "P",
+        "^description": "{$COUNT} EMR cluster(s) have StepConcurrencyLevel=1, the default, so steps run strictly one at a time. Whenever a step does not saturate the cluster the remaining capacity sits idle and billed. Raising the concurrency level lets independent steps overlap and materially improves utilisation on multi-step workloads.",
+        "shortDesc": "Increase step concurrency",
+        "criticality": "L",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Run steps concurrently]<https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-concurrent-steps.html>",
+            "[Submit work to a cluster]<https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-work-with-steps.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-concurrent-steps.html"
+    },
+    "emrMasterInstanceOnDemand": {
+        "category": "R",
+        "^description": "{$COUNT} EMR cluster(s) run the master node on spot capacity. A spot interruption on the master terminates the entire cluster and every running job, because the master coordinates all of them. This is an acceptable and deliberate cost trade-off for development and test clusters, so it is reported for review rather than as a failure.",
+        "shortDesc": "Review spot capacity on the master node",
+        "criticality": "L",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Instance purchasing options]<https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-instance-purchasing-options.html>",
+            "[EC2 Spot best practices]<https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/spot-best-practices.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-instance-purchasing-options.html"
+    },
+    "emrIdleCluster": {
+        "category": "C",
+        "^description": "{$COUNT} EMR cluster(s) have been in the WAITING state for more than 24 hours. A WAITING cluster is fully provisioned and fully billed while running no steps at all. Either enable auto-termination so the cluster shuts down when its work finishes, or terminate it \u2014 an idle EMR cluster is among the most expensive ways for an account to do nothing.",
+        "shortDesc": "Terminate or auto-terminate idle clusters",
+        "criticality": "L",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Auto-termination policy]<https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-auto-termination-policy.html>",
+            "[Cluster lifecycle]<https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-overview.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-auto-termination-policy.html"
+    },
+    "emrNoTags": {
+        "category": "O",
+        "^description": "{$COUNT} EMR cluster(s) carry no tags. EMR is among the most expensive services per hour in AWS, which makes an untagged cluster a large and unattributable line item \u2014 and the clusters most likely to be untagged are the ad-hoc ones launched for a one-off analysis and then forgotten.",
+        "shortDesc": "Tag the cluster with owner and cost centre",
+        "criticality": "L",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Tag clusters]<https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-plan-tags.html>",
+            "[Tagging AWS resources]<https://docs.aws.amazon.com/tag-editor/latest/userguide/tagging.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-plan-tags.html"
+    }
+}

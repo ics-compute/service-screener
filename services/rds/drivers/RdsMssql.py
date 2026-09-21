@@ -9,22 +9,22 @@ class RdsMssql(RdsCommon):
         # self.loadParameterInfo()
         self.isCustom = False
         self.getMSSQLEdition()
-    
+
     def getMSSQLEdition(self):
         engine = self.db['Engine']
         startPos = 10
         if engine.find('custom') == 0:
             startPos = 17
             self.isCustom = True
-        
+
         self.sqlEdition = self.db['Engine'][startPos:]
-        
-    
+
+
     # check if MSSQL engine is Express Edition / Web Edition
     def _checkEngineHasMultiAZSupport(self):
         flaggedEngines = ['sqlserver-ex','sqlserver-web']
         engine = self.db['Engine']
-        
+
         if engine in flaggedEngines:
             # print("instance flagged: multiAZ not supported")
             self.results['MSSQL__EngineHasMultiAZSupport'] = [-1,engine]
@@ -42,69 +42,71 @@ class RdsMssql(RdsCommon):
         if self.sqlEdition == 'ee':
             if self.instInfo['specification']['vcpu'] <= 48 or self.instInfo['specification']['memoryInGiB'] <= 128:
                 self.results['MSSQL__EEUnderSize'] = [-1, self.db['DBInstanceClass']]
-            
+
     def _checkNonEntSpecs(self):
         if not self.sqlEdition == 'ee':
             if self.instInfo['specification']['vcpu'] > 48 or self.instInfo['specification']['memoryInGiB'] > 128:
                 self.results['MSSQL__EditionOversize'] = [-1, self.db['DBInstanceClass'] + ' :: ' + self.sqlEdition]
-                
+
     def _checkEnt2017OrAbove(self):
         if self.sqlEdition == 'ee':
             y = self.enginePatches['DBEngineVersionDescription'][11:15]
             if int(y) >= 2017:
                 self.results['MSSQL__EE2017'] = [-1, self.enginePatches['DBEngineVersionDescription']]
-    
+
     def _checkParamCostThresholdParallelism(self):
         if self.isCustom:
             return
-        
+
         costT = self.dbParams['cost threshold for parallelism']
         recommendedThreshold = 50
         defaultThreshold = 5
         if int(costT) <= defaultThreshold:
             self.results['MSSQL__ParamCostThresholdTooLow'] = [-1, "Recommended: >{}<br>Current:{}".format(recommendedThreshold, costT)]
-    
+
     def _checkParamMaxServerMemory(self):
         if self.isCustom:
             return
-        
+
         ## Calculate max server memory:
         GbToKbRatio = 1024*1024
         # total_RAM - (memory_for_the_OS + MemoryToLeave)
         memTotal = self.instInfo['specification']['memoryInGiB']
         memOS = 1 # 1GB
         memMTL = 0
-        
+
         if memTotal <= 16:
             memMTL = math.floor(memTotal / 4)
         else: # > 16
             fix = 4 # 16/4
             memRemain = math.floor((memTotal - 16) / 8)
             memMTL = fix + memRemain
-        
+
         memRecommend = memTotal - (memOS + memMTL)
-        
+
         memInKBytes = self.instInfo['specification']['memoryInGiB'] * GbToKbRatio
-        
+
         maxMemorySettings = self.dbParams['max server memory (mb)']
         if 'DBInstanceClassMemory' in maxMemorySettings:
             maxMemorySettings = maxMemorySettings.replace("{", "")
             maxMemorySettings = maxMemorySettings.replace("}", "")
-            
-            maxMemorySettings = eval(maxMemorySettings, {"DBInstanceClassMemory": memInKBytes})
-        
+
+            # Safely evaluate arithmetic expression with DBInstanceClassMemory
+            maxMemorySettings = maxMemorySettings.replace("DBInstanceClassMemory", str(memInKBytes))
+            maxMemorySettings = ast.literal_eval(maxMemorySettings) if maxMemorySettings.isdigit() else eval(maxMemorySettings, {"__builtins__": {}})  # nosec B307
+
         ## Need to be review
         diff = (memRecommend - maxMemorySettings)/maxMemorySettings
-        
+
         if maxMemorySettings > memRecommend and diff < -0.1:
             self.results['MSSQL__ParamMaxMemoryTooHigh'] = [-1, "Recommended: {}<br>current: {}<br>diff: {}%".format(memRecommend, maxMemorySettings, round(diff*100, 2))]
         elif (memTotal <= 16 and diff > 0.2) or (memTotal > 16 and diff > 0.3):
             self.results['MSSQL__ParamMaxMemoryTooLow'] = [-1, "Recommended: {}<br>current: {}<br>diff: {}%".format(memRecommend, maxMemorySettings, round(diff*100, 2))]
-    
+
     def _checkParamMaxDOP(self):
         if self.isCustom:
             return
-        
+
         maxDegreeParallism = self.dbParams['max degree of parallelism']
         if maxDegreeParallism == 0:
             self.results['MSSQL__ParamMaxDegreeParallism'] = [-1, 0]

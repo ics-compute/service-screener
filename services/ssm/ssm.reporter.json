@@ -1,0 +1,240 @@
+{
+  "ssmParameterNotEncrypted": {
+    "category": "S",
+    "^description": "{$COUNT} Parameter Store parameter(s) have a name indicating they hold a credential (secret, password, token, api key or similar) while being stored as a plain String rather than a SecureString. The value is then readable by any principal holding ssm:GetParameter with no KMS decrypt permission required, and it appears in plaintext in CloudTrail request logs, CloudFormation template output and the console. Recreate the parameter as a SecureString backed by a customer managed KMS key.",
+    "shortDesc": "Store credential parameters as SecureString",
+    "criticality": "H",
+    "downtime": 0,
+    "slowness": 0,
+    "additionalCost": 0,
+    "needFullTest": 1,
+    "ref": [
+      "[Creating Parameter Store parameters]<https://docs.aws.amazon.com/systems-manager/latest/userguide/parameter-create-console.html>",
+      "[SecureString parameters]<https://docs.aws.amazon.com/systems-manager/latest/userguide/parameter-store-about-examples.html>"
+    ],
+    "remediation": null,
+    "remediation_risk": null,
+    "remediation_doc": "https://docs.aws.amazon.com/systems-manager/latest/userguide/parameter-store-about-examples.html"
+  },
+  "ssmParameterNoEncryptionCMK": {
+    "category": "S",
+    "^description": "{$COUNT} SecureString parameter(s) are encrypted with the AWS-managed key alias/aws/ssm instead of a customer managed key. The key policy of an AWS-managed key cannot be edited, so every principal that holds ssm:GetParameter can decrypt the value — the second authorization layer a CMK would add is absent. The account also cannot rotate the key on its own schedule, revoke it to cut off access, or audit its use through a key policy condition.",
+    "shortDesc": "Encrypt SecureString parameters with a customer managed key",
+    "criticality": "M",
+    "downtime": 0,
+    "slowness": 0,
+    "additionalCost": 1,
+    "needFullTest": 1,
+    "ref": [
+      "[How AWS Systems Manager uses AWS KMS]<https://docs.aws.amazon.com/kms/latest/developerguide/services-parameter-store.html>",
+      "[SecureString parameters]<https://docs.aws.amazon.com/systems-manager/latest/userguide/parameter-store-about-examples.html>"
+    ],
+    "remediation": null,
+    "remediation_risk": null,
+    "remediation_doc": "https://docs.aws.amazon.com/kms/latest/developerguide/services-parameter-store.html"
+  },
+  "ssmParameterOldVersion": {
+    "category": "O",
+    "^description": "{$COUNT} parameter(s) have accumulated more than 20 versions and then gone untouched for over a year. That combination suggests a parameter that was actively maintained and has since been abandoned: something still reads it, or nothing does and it is dead configuration nobody dares remove. Confirm whether it is still consumed, then either document it or delete it.",
+    "shortDesc": "Review heavily revised parameters that are no longer maintained",
+    "criticality": "L",
+    "downtime": 0,
+    "slowness": 0,
+    "additionalCost": 0,
+    "needFullTest": 0,
+    "ref": [
+      "[Working with parameter versions]<https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-versions.html>",
+      "[Managing parameter tiers]<https://docs.aws.amazon.com/systems-manager/latest/userguide/parameter-store-advanced-parameters.html>"
+    ],
+    "remediation": null,
+    "remediation_risk": null,
+    "remediation_doc": "https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-versions.html"
+  },
+  "ssmParameterNoDescription": {
+    "category": "O",
+    "^description": "{$COUNT} parameter(s) have no description. The parameter name is then the only clue to what reads the value and what breaks if it changes, which makes every parameter a hazard during cleanup: nobody can establish whether deleting it is safe. A one-line description naming the consuming application removes that ambiguity.",
+    "shortDesc": "Add a description naming the parameter's consumer",
+    "criticality": "L",
+    "downtime": 0,
+    "slowness": 0,
+    "additionalCost": 0,
+    "needFullTest": 0,
+    "ref": [
+      "[Creating Parameter Store parameters]<https://docs.aws.amazon.com/systems-manager/latest/userguide/parameter-create-console.html>",
+      "[AWS Systems Manager Parameter Store]<https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html>"
+    ],
+    "remediation": null,
+    "remediation_risk": null,
+    "remediation_doc": "https://docs.aws.amazon.com/systems-manager/latest/userguide/parameter-create-console.html"
+  },
+  "ssmParameterNoTags": {
+    "category": "O",
+    "^description": "{$COUNT} parameter(s) carry no tags. Without tags the parameter cannot be attributed to an owning application or environment, and tag-based IAM conditions cannot be used to restrict which roles may read it — a common pattern for keeping a production parameter out of reach of a development role. Untagged parameters are also invisible to tag-driven cost and governance reporting.",
+    "shortDesc": "Tag the parameter with owner and environment",
+    "criticality": "L",
+    "downtime": 0,
+    "slowness": 0,
+    "additionalCost": 0,
+    "needFullTest": 0,
+    "ref": [
+      "[Tagging Systems Manager parameters]<https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-tagging.html>",
+      "[Controlling access to parameters using tags]<https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-access.html>"
+    ],
+    "remediation": null,
+    "remediation_risk": null,
+    "remediation_doc": "https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-tagging.html"
+  },
+  "ssmSessionManagerNoEncryption": {
+    "category": "S",
+    "^description": "{$COUNT} region(s) run Session Manager without a KMS key configured in the SSM-SessionManagerRunShell preferences. Session data is then protected only by TLS in transit, with no additional KMS encryption applied to the session content itself. Configuring a customer managed key adds a second layer that also makes every session decryption an auditable KMS event.",
+    "shortDesc": "Configure a KMS key for Session Manager session data",
+    "criticality": "M",
+    "downtime": 0,
+    "slowness": 0,
+    "additionalCost": 1,
+    "needFullTest": 1,
+    "ref": [
+      "[Enable KMS encryption of session data]<https://docs.aws.amazon.com/systems-manager/latest/userguide/session-preferences-enable-encryption.html>",
+      "[Session Manager preferences]<https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html>"
+    ],
+    "remediation": null,
+    "remediation_risk": null,
+    "remediation_doc": "https://docs.aws.amazon.com/systems-manager/latest/userguide/session-preferences-enable-encryption.html"
+  },
+  "ssmSessionManagerNoCloudWatchLogs": {
+    "category": "O",
+    "^description": "{$COUNT} region(s) do not stream Session Manager activity to CloudWatch Logs, either because no log group is configured or because streaming is switched off. Interactive shell sessions on managed instances then leave no transcript, so there is no record of which commands an operator ran during an incident and no way to alert on dangerous commands. This is the primary audit trail for human access to instances.",
+    "shortDesc": "Stream Session Manager activity to CloudWatch Logs",
+    "criticality": "M",
+    "downtime": 0,
+    "slowness": 0,
+    "additionalCost": 1,
+    "needFullTest": 0,
+    "ref": [
+      "[Logging session activity]<https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-logging.html>",
+      "[Streaming session data to CloudWatch Logs]<https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-logging.html>"
+    ],
+    "remediation": null,
+    "remediation_risk": null,
+    "remediation_doc": "https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-logging.html"
+  },
+  "ssmSessionManagerNoS3Logs": {
+    "category": "O",
+    "^description": "{$COUNT} region(s) do not archive Session Manager output to S3. The only copy of a session transcript then lives in CloudWatch Logs, subject to that log group's retention period, so an investigation opened after retention has elapsed finds nothing. An S3 archive provides a durable long-term copy that can be protected with Object Lock and a separate access policy.",
+    "shortDesc": "Archive Session Manager output to an S3 bucket",
+    "criticality": "L",
+    "downtime": 0,
+    "slowness": 0,
+    "additionalCost": 1,
+    "needFullTest": 0,
+    "ref": [
+      "[Logging session activity]<https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-logging.html>",
+      "[Storing session logs in an S3 bucket]<https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-logging.html>"
+    ],
+    "remediation": null,
+    "remediation_risk": null,
+    "remediation_doc": "https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-logging.html"
+  },
+  "ssmSessionManagerRunAsDisabled": {
+    "category": "S",
+    "^description": "{$COUNT} region(s) have Session Manager Run As disabled, so every session runs as the shared ssm-user account. On-host audit logs then attribute every command to that one identity regardless of who opened the session, which breaks individual accountability precisely where it matters most — interactive root-capable access to production instances. Enabling Run As makes each session assume a per-user operating system account.",
+    "shortDesc": "Enable Run As so sessions use per-user OS accounts",
+    "criticality": "M",
+    "downtime": 0,
+    "slowness": 0,
+    "additionalCost": 0,
+    "needFullTest": 1,
+    "ref": [
+      "[Enable run as support for Linux and macOS]<https://docs.aws.amazon.com/systems-manager/latest/userguide/session-preferences-run-as.html>",
+      "[Session Manager preferences]<https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html>"
+    ],
+    "remediation": null,
+    "remediation_risk": null,
+    "remediation_doc": "https://docs.aws.amazon.com/systems-manager/latest/userguide/session-preferences-run-as.html"
+  },
+  "ssmManagedInstanceNotPatched": {
+    "category": "S",
+    "^description": "{$COUNT} managed instance(s) are non-compliant with their patch baseline, missing patches that Patch Manager grades as critical or security severity. Those are the patches that close actively exploited vulnerabilities, so an instance in this state is exposed to known attacks for as long as it remains unpatched. Run the AWS-RunPatchBaseline document against the instance, or fix the maintenance window that should already be doing so.",
+    "shortDesc": "Apply missing critical and security patches",
+    "criticality": "H",
+    "downtime": 1,
+    "slowness": 0,
+    "additionalCost": 0,
+    "needFullTest": 1,
+    "ref": [
+      "[AWS Systems Manager Patch Manager]<https://docs.aws.amazon.com/systems-manager/latest/userguide/patch-manager.html>",
+      "[About patch compliance]<https://docs.aws.amazon.com/systems-manager/latest/userguide/patch-compliance.html>"
+    ],
+    "remediation": null,
+    "remediation_risk": null,
+    "remediation_doc": "https://docs.aws.amazon.com/systems-manager/latest/userguide/patch-manager.html"
+  },
+  "ssmManagedInstanceOldAgent": {
+    "category": "R",
+    "^description": "{$COUNT} managed instance(s) report that their SSM Agent is not the latest available version. An outdated agent misses fixes for known agent defects — including ones that cause the agent to stop reporting, which silently removes the instance from patching and inventory — and it may not support newer Systems Manager features the account depends on. Automate updates with the AWS-UpdateSSMAgent association so this does not recur.",
+    "shortDesc": "Update the SSM Agent to the latest version",
+    "criticality": "M",
+    "downtime": 0,
+    "slowness": 0,
+    "additionalCost": 0,
+    "needFullTest": 0,
+    "ref": [
+      "[Updating the SSM Agent]<https://docs.aws.amazon.com/systems-manager/latest/userguide/ssm-agent-automatic-updates.html>",
+      "[Working with SSM Agent]<https://docs.aws.amazon.com/systems-manager/latest/userguide/ssm-agent.html>"
+    ],
+    "remediation": null,
+    "remediation_risk": null,
+    "remediation_doc": "https://docs.aws.amazon.com/systems-manager/latest/userguide/ssm-agent-automatic-updates.html"
+  },
+  "ssmManagedInstanceNotOnline": {
+    "category": "O",
+    "^description": "{$COUNT} managed instance(s) have a PingStatus other than Online, so Systems Manager cannot currently reach them. Every capability that depends on the agent connection stops for those instances: they receive no patches, report no inventory, and cannot be accessed through Run Command or Session Manager. Because the instance still appears in the managed inventory, this failure is easy to miss — it looks managed while receiving nothing.",
+    "shortDesc": "Restore the SSM Agent connection on offline instances",
+    "criticality": "L",
+    "downtime": 0,
+    "slowness": 0,
+    "additionalCost": 0,
+    "needFullTest": 0,
+    "ref": [
+      "[Troubleshooting managed node availability]<https://docs.aws.amazon.com/systems-manager/latest/userguide/troubleshooting-managed-instances.html>",
+      "[AWS Systems Manager Fleet Manager]<https://docs.aws.amazon.com/systems-manager/latest/userguide/fleet.html>"
+    ],
+    "remediation": null,
+    "remediation_risk": null,
+    "remediation_doc": "https://docs.aws.amazon.com/systems-manager/latest/userguide/troubleshooting-managed-instances.html"
+  },
+  "ssmDefaultHostManagementDisabled": {
+    "category": "O",
+    "^description": "{$COUNT} region(s) do not have Default Host Management Configuration enabled. Every EC2 instance then needs its own instance profile before Systems Manager can manage it, so any instance launched without one is silently unmanaged — missing patching, inventory collection and Session Manager access while still appearing in the console as a normal instance. Enabling DHMC makes management the default for all current and future instances in the region through a single IAM role.",
+    "shortDesc": "Enable Default Host Management Configuration",
+    "criticality": "M",
+    "downtime": 0,
+    "slowness": 0,
+    "additionalCost": 0,
+    "needFullTest": 1,
+    "ref": [
+      "[Default Host Management Configuration]<https://docs.aws.amazon.com/systems-manager/latest/userguide/managed-instances-default-host-management.html>",
+      "[Setting up Systems Manager for EC2 instances]<https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-setting-up-ec2.html>"
+    ],
+    "remediation": null,
+    "remediation_risk": null,
+    "remediation_doc": "https://docs.aws.amazon.com/systems-manager/latest/userguide/managed-instances-default-host-management.html"
+  },
+  "ssmInventoryNotConfigured": {
+    "category": "O",
+    "^description": "{$COUNT} managed instance(s) have no AWS:InstanceInformation inventory entry, meaning no Inventory association is collecting from them. The installed applications, network configuration and patch state of those instances are therefore not recorded anywhere, so when a vulnerability is announced in a particular package version there is no way to determine which instances run it without logging into each one. Set up an inventory association targeting the whole fleet.",
+    "shortDesc": "Configure Systems Manager Inventory collection",
+    "criticality": "L",
+    "downtime": 0,
+    "slowness": 0,
+    "additionalCost": 0,
+    "needFullTest": 0,
+    "ref": [
+      "[AWS Systems Manager Inventory]<https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-inventory.html>",
+      "[Configuring inventory collection]<https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-inventory-configuring.html>"
+    ],
+    "remediation": null,
+    "remediation_risk": null,
+    "remediation_doc": "https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-inventory.html"
+  }
+}

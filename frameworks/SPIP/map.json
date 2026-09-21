@@ -1,52 +1,218 @@
 {
-  "metadata": {
-    "originator": "AWS",
-    "shortname": "SPIP",
-    "fullname": "AWS Security Posture Improvement Program(SPIP)",
-    "description": "Encompasses a thorough review across six critical phases of cloud security posture management: Infrastructure Protection and Visibility, Identity Protection, Asset Management, Detection & Mitigation, DevSecOps, and Centralization.",
-    "_": "N/A",
-    "emptyCheckDefaultMsg": ""
-  },
-  "mapping": {
-    "Identity Protection": {
-      "P1.1": ["iam.rootMfaActive" , "iam.mfaActive"],
-      "P1.2": ["iam.hasAccessKeyNoRotate30days" , "iam.hasAccessKeyNoRotate90days"],
-      "P1.3": ["iam.passwordPolicy" , "iam.passwordPolicyWeak" , "iam.passwordPolicyReuse" , "iam.passwordPolicyLength"],
-      "P1.4": ["iam.hasSSORoles" , "iam.hasExternalIdentityProvider"],
-      "P1.5": ["iam.SCPEnabled", "iam.hasOrganization"],
-      "P1.6": [],
-      "P1.7": []
+    "metadata": {
+        "originator": "AWS",
+        "shortname": "SPIP",
+        "fullname": "AWS Security Posture Improvement Program(SPIP)",
+        "description": "Encompasses a thorough review across six critical phases of cloud security posture management: Infrastructure Protection and Visibility, Identity Protection, Asset Management, Detection & Mitigation, DevSecOps, and Centralization.",
+        "_": "N/A",
+        "emptyCheckDefaultMsg": ""
     },
-    "Data Protection": {
-      "P2.1": ["s3.PublicAccessBlock" , "s3.PublicReadAccessBlock" , "s3.PublicWriteAccessBlock"],
-      "P2.2": ["ec2.EBSSnapshot", "rds.Backup", "dynamodb.backupStatus", "dynamodb.enabledContinuousBackup", "efs.AutomatedBackup", "redshift.AutomaticSnapshots"],
-      "P2.3": ["s3.ServerSideEncrypted" , "s3.SSEWithKMS" , "ec2.EBSEncrypted" , "efs.EncryptedAtRest" , "rds.StorageEncrypted" , "redshift.EncryptedAtRest" , "redshift.EncryptedWithKMS" , "cloudfront.fieldLevelEncryption" , "apigateway.EncryptionAtRest" , "apigateway.EncryptionInTransit"],
-      "P2.4": ["s3.MacieToEnable"],
-      "P2.5": ["is3.TlsEnforced" , "redshift.EncryptedInTransit" , "rds.MSSQLorPG__TransportEncrpytionDisabled" , "opensearch.NodeToNodeEncryption" , "opensearch.TLSEnforced" , "elasticache.EncInTransitAndRest" , "ec2.SGEncryptionInTransit" , "cloudfront.viewerPolicyHttps"]
-    },
-    "Infrastructure Protection and Visibility": {
-      "P3.1": ["ec2.SGDefaultInUsed" , "ec2.SGSensitivePortOpenToAll" , "ec2.SGAllTCPOpen" , "ec2.SGAllUDPOpen" , "ec2.SGAllPortOpen"],
-      "P3.2": ["cloudfront.WAFAssociation"],
-      "P3.3": ["cloudfront.defaultRootObject"],
-      "P3.4": [],
-      "P3.5": ["ec2.SGSensitivePortOpenToAll"],
-      "P3.6": ["apigateway.WAFWACL"]
-    },
-    "Detection & Mitigation": {
-      "P4.1": ["cloudtrail.NeedToEnableCloudTrail", "cloudtrail.EnableCloudTrailLogging" , "cloudtrail.LogFileValidationEnabled"],
-      "P4.2": ["guardduty.UsageStat" , "guardduty.Findings"],
-      "P4.3": ["cloudtrail.EnableTrailS3BucketLogging"],
-      "P4.4": ["cloudtrail.EnableTrailS3BucketMFADelete" , "cloudtrail.EnableTrailS3BucketVersioning" , "s3.MFADelete" , "s3.BucketVersioning" , "s3.ObjectLock"],
-      "P4.5": [],
-      "P4.6": [],
-      "P4.7": []
-    },
-    "AppSec & DevSecOps":{
-      "P5.1": ["rds.DBwithoutSecretManager"],
-      "P5.2": [],
-      "P5.3": [],
-      "P5.4": [],
-      "P5.5": []
+    "mapping": {
+        "Identity Protection": {
+            "P1.1": [
+                "iam.rootMfaActive",
+                "iam.mfaActive",
+                "cognito.cognitoMfaNotEnforced",
+                "cognito.cognitoAdvancedSecurityNotEnforced",
+                "appsync.appsyncNoAuthentication",
+                "emr.emrKerberosNotEnabled"
+            ],
+            "P1.2": [
+                "iam.hasAccessKeyNoRotate30days",
+                "iam.hasAccessKeyNoRotate90days"
+            ],
+            "P1.3": [
+                "iam.passwordPolicy",
+                "iam.passwordPolicyWeak",
+                "iam.passwordPolicyReuse",
+                "iam.passwordPolicyLength",
+                "cognito.cognitoWeakPasswordPolicy"
+            ],
+            "P1.4": [
+                "iam.hasSSORoles",
+                "iam.hasExternalIdentityProvider"
+            ],
+            "P1.5": [
+                "iam.SCPEnabled",
+                "iam.hasOrganization"
+            ],
+            "P1.6": [],
+            "P1.7": []
+        },
+        "Data Protection": {
+            "P2.1": [
+                "s3.PublicAccessBlock",
+                "s3.PublicReadAccessBlock",
+                "s3.PublicWriteAccessBlock",
+                "secretsmanager.smResourcePolicyPublicAccess",
+                "eventbridge.ebBusPublicPolicy",
+                "ecr.ecrRepoPublicAccess",
+                "emr.emrPubliclyAccessible",
+                "emr.emrBlockPublicAccessDisabled",
+                "codebuild.cbProjectVisibilityPublic"
+            ],
+            "P2.2": [
+                "ec2.EBSSnapshot",
+                "rds.Backup",
+                "dynamodb.disabledBackup",
+                "dynamodb.disabledPointInTimeRecovery",
+                "efs.AutomatedBackup",
+                "redshift.AutomaticSnapshots",
+                "backup.backupNoPlanExists",
+                "backup.backupPlanNotAssigned",
+                "backup.backupCriticalResourcesUnprotected"
+            ],
+            "P2.3": [
+                "s3.ServerSideEncrypted",
+                "s3.SSEWithKMS",
+                "ec2.EBSEncrypted",
+                "efs.EncryptedAtRest",
+                "rds.StorageEncrypted",
+                "redshift.EncryptedAtRest",
+                "redshift.EncryptedWithKMS",
+                "cloudfront.fieldLevelEncryption",
+                "apigateway.EncryptionAtRest",
+                "apigateway.EncryptionInTransit",
+                "bedrock.bedrockAgentNoEncryptionKey",
+                "bedrock.bedrockGuardrailNoEncryption",
+                "bedrock.bedrockKBNoEncryption",
+                "bedrock.bedrockACMemoryNoEncryption",
+                "stepfunctions.sfnEncryptionAtRest",
+                "sns.snsEncryptionAtRest",
+                "ssm.ssmParameterNotEncrypted",
+                "ssm.ssmParameterNoEncryptionCMK",
+                "secretsmanager.smNotEncryptedWithCMK",
+                "eventbridge.ebBusNoEncryption",
+                "backup.backupRecoveryPointNotEncrypted",
+                "kinesis.kinesisSSEDisabled",
+                "emr.emrEncryptionAtRestDisabled",
+                "emr.emrNoSecurityConfiguration",
+                "athena.athenaWorkgroupNotEncrypted",
+                "athena.athenaS3OutputNotEncrypted",
+                "athena.athenaMinimumEncryptionDisabled",
+                "codebuild.cbNoArtifactEncryption",
+                "codebuild.cbS3LogsNotEncrypted",
+                "codebuild.cbReportGroupExportNotEncrypted",
+                "codebuild.cbEncryptionDefaultKey"
+            ],
+            "P2.4": [
+                "s3.MacieToEnable",
+                "bedrock.bedrockGuardrailNoPiiDetection"
+            ],
+            "P2.5": [
+                "s3.TlsEnforced",
+                "redshift.EncryptedInTransit",
+                "rds.MSSQLorPG__TransportEncrpytionDisabled",
+                "opensearch.NodeToNodeEncryption",
+                "opensearch.TLSEnforced",
+                "elasticache.EncInTransitAndRest",
+                "ec2.SGEncryptionInTransit",
+                "cloudfront.viewerPolicyHttps",
+                "eventbridge.ebApiDestinationHttpEndpoint",
+                "emr.emrEncryptionInTransitDisabled",
+                "codebuild.cbInsecureSSL"
+            ]
+        },
+        "Infrastructure Protection and Visibility": {
+            "P3.1": [
+                "ec2.SGDefaultInUsed",
+                "ec2.SGSensitivePortOpenToAll",
+                "ec2.SGAllTCPOpen",
+                "ec2.SGAllUDPOpen",
+                "ec2.SGAllPortOpen"
+            ],
+            "P3.2": [
+                "cloudfront.WAFAssociation",
+                "wafv2.wafv2NoRules",
+                "wafv2.wafv2NoManagedRuleGroups",
+                "wafv2.wafv2NoRateBasedRules",
+                "appsync.appsyncWafNotAssociated",
+                "appsync.appsyncIntrospectionEnabled"
+            ],
+            "P3.3": [
+                "cloudfront.defaultRootObject"
+            ],
+            "P3.4": [],
+            "P3.5": [
+                "ec2.SGSensitivePortOpenToAll"
+            ],
+            "P3.6": [
+                "apigateway.WAFWACL"
+            ]
+        },
+        "Detection & Mitigation": {
+            "P4.1": [
+                "cloudtrail.NeedToEnableCloudTrail",
+                "cloudtrail.EnableCloudTrailLogging",
+                "cloudtrail.LogFileValidationEnabled",
+                "bedrock.bedrockModelInvocationLoggingDisabled",
+                "bedrock.bedrockModelInvocationNoCloudWatch",
+                "bedrock.bedrockModelInvocationNoS3",
+                "stepfunctions.sfnLoggingDisabled",
+                "config.configRecorderNotEnabled",
+                "config.configNoRules",
+                "ssm.ssmSessionManagerNoCloudWatchLogs",
+                "securityhub.shubNotEnabled",
+                "securityhub.shubNoStandardsEnabled",
+                "securityhub.shubCISStandardDisabled",
+                "securityhub.shubAutoEnableControlsDisabled",
+                "emr.emrLoggingDisabled",
+                "codebuild.cbLogsDisabled",
+                "appsync.appsyncFieldLevelLogging",
+                "appsync.appsyncCloudWatchLogsNotEnabled",
+                "cloudformation.cfnDriftDetected",
+                "cloudformation.cfnDriftNeverChecked",
+                "cloudformation.cfnStackPolicyMissing"
+            ],
+            "P4.2": [
+                "guardduty.UsageStat",
+                "guardduty.Findings",
+                "guardduty.S3ProtectionDisabled",
+                "guardduty.EksAuditLogsDisabled",
+                "guardduty.RdsProtectionDisabled",
+                "guardduty.LambdaProtectionDisabled",
+                "guardduty.RuntimeMonitoringDisabled",
+                "guardduty.MalwareProtectionDisabled",
+                "inspector.inspectorNotEnabled",
+                "inspector.inspectorCriticalFindings",
+                "inspector.inspectorExploitableFindings",
+                "securityhub.shubFindingAggregatorMissing",
+                "inspector.inspectorEc2ScanningDisabled",
+                "inspector.inspectorEcrScanningDisabled",
+                "inspector.inspectorLambdaScanningDisabled",
+                "inspector.inspectorCoverageGap",
+                "inspector.inspectorFixAvailableNotApplied",
+                "emr.emrOldRelease",
+                "codebuild.cbImageOutdated",
+                "codebuild.cbPrivilegedMode"
+            ],
+            "P4.3": [
+                "cloudtrail.EnableTrailS3BucketLogging"
+            ],
+            "P4.4": [
+                "cloudtrail.EnableTrailS3BucketMFADelete",
+                "cloudtrail.EnableTrailS3BucketVersioning",
+                "s3.MFADelete",
+                "s3.BucketVersioning",
+                "s3.ObjectLock"
+            ],
+            "P4.5": [],
+            "P4.6": [],
+            "P4.7": []
+        },
+        "AppSec & DevSecOps": {
+            "P5.1": [
+                "rds.DBwithoutSecretManager",
+                "secretsmanager.smRotationNotEnabled",
+                "secretsmanager.smRotationOverdue",
+                "ssm.ssmParameterNotEncrypted",
+                "codebuild.cbPlaintextCredentialsInEnvVars",
+                "codebuild.cbSourceUrlCredentials"
+            ],
+            "P5.2": [],
+            "P5.3": [],
+            "P5.4": [],
+            "P5.5": []
+        }
     }
-  }
 }

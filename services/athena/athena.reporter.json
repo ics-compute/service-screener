@@ -1,0 +1,172 @@
+{
+    "athenaWorkgroupNotEncrypted": {
+        "category": "S",
+        "^description": "{$COUNT} Athena workgroup(s) have no result EncryptionConfiguration. Athena writes the output of every query to S3, and a result set is a materialised extract of whatever the query selected \u2014 often the most sensitive columns of a much larger dataset, flattened into a single file. Without workgroup-level encryption those extracts land unencrypted, and they persist long after the query that produced them is forgotten.",
+        "shortDesc": "Encrypt Athena query results",
+        "criticality": "H",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 1,
+        "ref": [
+            "[Encrypting query results]<https://docs.aws.amazon.com/athena/latest/ug/encryption.html>",
+            "[Workgroup settings]<https://docs.aws.amazon.com/athena/latest/ug/workgroups-settings.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/athena/latest/ug/encryption.html"
+    },
+    "athenaWorkgroupNoEnforcement": {
+        "category": "S",
+        "^description": "{$COUNT} Athena workgroup(s) have EnforceWorkGroupConfiguration=false, which lets any client override the workgroup's result location and encryption settings on a per-query basis. Every other protection configured on the workgroup then becomes a default that a caller may silently ignore, rather than a control the workgroup actually imposes.",
+        "shortDesc": "Enforce workgroup configuration",
+        "criticality": "M",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 1,
+        "ref": [
+            "[Workgroup settings override]<https://docs.aws.amazon.com/athena/latest/ug/workgroups-settings-override.html>",
+            "[Workgroup settings]<https://docs.aws.amazon.com/athena/latest/ug/workgroups-settings.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/athena/latest/ug/workgroups-settings-override.html"
+    },
+    "athenaMinimumEncryptionDisabled": {
+        "category": "S",
+        "^description": "{$COUNT} Athena workgroup(s) have EnableMinimumEncryptionConfiguration=false. This setting establishes a floor below which a client may not downgrade the encryption of its query results. Without it, a caller that is permitted to set its own encryption option can choose a weaker one than the workgroup intends, which quietly defeats the workgroup's encryption policy.",
+        "shortDesc": "Enforce a minimum encryption level",
+        "criticality": "M",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 1,
+        "ref": [
+            "[Minimum encryption]<https://docs.aws.amazon.com/athena/latest/ug/encryption.html>",
+            "[Workgroup settings]<https://docs.aws.amazon.com/athena/latest/ug/workgroups-settings.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/athena/latest/ug/encryption.html"
+    },
+    "athenaS3OutputNotEncrypted": {
+        "category": "S",
+        "^description": "{$COUNT} Athena workgroup(s) write query results to an S3 bucket that has no default encryption rule. Workgroup-level encryption and bucket-level default encryption are independent controls: the bucket default is what protects objects written by anything other than Athena, and what protects Athena's own output if the workgroup setting is ever removed. Reported here rather than only in the S3 section because the workgroup is what chose the destination.",
+        "shortDesc": "Enable default encryption on the results bucket",
+        "criticality": "M",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Encrypting query results]<https://docs.aws.amazon.com/athena/latest/ug/encryption.html>",
+            "[S3 default encryption]<https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucket-encryption.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/athena/latest/ug/encryption.html"
+    },
+    "athenaWorkgroupS3OutputNoPrefix": {
+        "category": "S",
+        "^description": "{$COUNT} Athena workgroup(s) write query results to the root of an S3 bucket. Results then mix with any other content in that bucket, which makes it impossible to write a lifecycle rule that expires only query output, or a bucket policy that grants access only to results, without affecting everything else stored there.",
+        "shortDesc": "Write query results under a prefix, not the bucket root",
+        "criticality": "L",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Query results location]<https://docs.aws.amazon.com/athena/latest/ug/querying.html>",
+            "[Workgroup settings]<https://docs.aws.amazon.com/athena/latest/ug/workgroups-settings.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/athena/latest/ug/querying.html"
+    },
+    "athenaBytesScannedNoLimit": {
+        "category": "C",
+        "^description": "{$COUNT} Athena workgroup(s) have no BytesScannedCutoffPerQuery. Athena bills per byte scanned, and a single query against an unpartitioned table \u2014 a SELECT * with no WHERE clause, or a join that defeats partition pruning \u2014 can scan an entire data lake. One such query has produced bills in the thousands of dollars. A cutoff makes the worst case a failed query rather than an invoice.",
+        "shortDesc": "Set a per-query data scanned limit",
+        "criticality": "M",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Workgroup data usage controls]<https://docs.aws.amazon.com/athena/latest/ug/workgroups-setting-control-limits-cloudwatch.html>",
+            "[Athena pricing]<https://aws.amazon.com/athena/pricing/>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/athena/latest/ug/workgroups-setting-control-limits-cloudwatch.html"
+    },
+    "athenaEngineVersionOutdated": {
+        "category": "P",
+        "^description": "{$COUNT} Athena workgroup(s) run an engine version older than 3. Newer engines bring substantial query performance improvements \u2014 which directly reduces bytes scanned and therefore cost \u2014 along with security fixes and new SQL features that older engines do not receive. The check reads EffectiveEngineVersion, because a workgroup set to AUTO reports its selected version as 'AUTO'.",
+        "shortDesc": "Upgrade to Athena engine version 3 or later",
+        "criticality": "M",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 1,
+        "ref": [
+            "[Athena engine versioning]<https://docs.aws.amazon.com/athena/latest/ug/engine-versions.html>",
+            "[Engine version reference]<https://docs.aws.amazon.com/athena/latest/ug/engine-versions-reference.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/athena/latest/ug/engine-versions.html"
+    },
+    "athenaPublishMetricsDisabled": {
+        "category": "O",
+        "^description": "{$COUNT} Athena workgroup(s) do not publish CloudWatch metrics. Query count, data scanned, execution time and failure rate are then unobservable, so neither a cost spike from a runaway query nor a consumer that has started failing can be alarmed on. Metrics are the prerequisite for the data-usage alarms Athena supports.",
+        "shortDesc": "Publish Athena CloudWatch metrics",
+        "criticality": "L",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Monitoring with CloudWatch]<https://docs.aws.amazon.com/athena/latest/ug/query-metrics-viewing.html>",
+            "[Workgroup settings]<https://docs.aws.amazon.com/athena/latest/ug/workgroups-settings.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/athena/latest/ug/query-metrics-viewing.html"
+    },
+    "athenaWorkgroupDisabled": {
+        "category": "O",
+        "^description": "{$COUNT} Athena workgroup(s) are in the DISABLED state, so every query submitted to them fails. Either re-enable the workgroup or delete it, so that the set of workgroups reflects what is actually in use \u2014 a disabled workgroup left in place is a trap for anyone who points a new client at it.",
+        "shortDesc": "Re-enable or delete the disabled workgroup",
+        "criticality": "L",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Managing workgroups]<https://docs.aws.amazon.com/athena/latest/ug/workgroups-procedure.html>",
+            "[Workgroup settings]<https://docs.aws.amazon.com/athena/latest/ug/workgroups-settings.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/athena/latest/ug/workgroups-procedure.html"
+    },
+    "athenaNoTags": {
+        "category": "O",
+        "^description": "{$COUNT} Athena workgroup(s) carry no tags. Athena cost is attributed per workgroup, which makes the workgroup the natural unit of chargeback \u2014 and an untagged one makes query spend impossible to attribute to the team generating it. Tags are also how workgroup access is commonly restricted with IAM conditions.",
+        "shortDesc": "Tag the workgroup with owner and cost centre",
+        "criticality": "L",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Tagging workgroups]<https://docs.aws.amazon.com/athena/latest/ug/tags-best-practices.html>",
+            "[Tagging AWS resources]<https://docs.aws.amazon.com/tag-editor/latest/userguide/tagging.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/athena/latest/ug/tags-best-practices.html"
+    }
+}

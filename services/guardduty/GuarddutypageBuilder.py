@@ -12,7 +12,10 @@ class GuarddutypageBuilder(PageBuilder):
     SERVICESUMMARY_DEFAULT = {
         'EC2': 0,
         'IAMUser': 0,
+        'IAM': 0,  # New GuardDuty category
         'Kubernetes': 0,
+        'EKS': 0,  # New GuardDuty category
+        'ECS': 0,  # New GuardDuty category
         'S3': 0,
         'Malware': 0,
         'RDS': 0,
@@ -22,7 +25,7 @@ class GuarddutypageBuilder(PageBuilder):
 
     def __init__(self, service, reporter):
         super().__init__(service, reporter)
-        
+
         self.template = 'default'
         self.statSummary = {}
         self.findings = []
@@ -39,19 +42,19 @@ class GuarddutypageBuilder(PageBuilder):
             for detectorId, detector in detectors.items():
                 if 'Findings' in detector:
                     findings = self._gdProcessFinding(detector['Findings']['value'])
-                
+
                 ustat = '-1'
                 if 'UsageStat' in detector and 'value' in detector['UsageStat']:
                     ustat = detector['UsageStat']['value']
-                
+
                 ftrial = '-1'
                 if 'FreeTrial' in detector and 'value' in detector['FreeTrial']:
                     ftrial = detector['FreeTrial']['value']
-                
+
                 settings = '-1'
                 if 'Settings' in detector and 'value' in detector['Settings'] and 'Settings' in detector['Settings']['value']:
                     settings = detector['Settings']['value']['Settings']
-                    
+
                 self.settings[region] = self._gdProcessGeneral(ftrial, settings, ustat)
 
             if findings:
@@ -62,13 +65,13 @@ class GuarddutypageBuilder(PageBuilder):
                     if not serv in self.statSummary['services']:
                         _warn("New GuardDuty category not being tracked (summary), please submit an issue to github --> " + serv)
                         self.statSummary['services'][serv] = 0
-                    
+
                     self.statSummary['services'][serv] += val
 
     def _gdProcessFinding(self, findings):
         if not findings:
             return
-        
+
         arr = {
             'stat': {
                 'severity': {},
@@ -100,10 +103,10 @@ class GuarddutypageBuilder(PageBuilder):
 
                 if result[0] == 'Execution':
                     service_type = 'Malware'
-                
+
                 if not service_type in findings_by_severity[severity]:
                     findings_by_severity[severity][service_type] = {}
-                    
+
                 findings_by_severity[severity][service_type][topic] = detail['res_']
                 self.findingsLink[service_type+topic] = detail['__']
 
@@ -111,7 +114,7 @@ class GuarddutypageBuilder(PageBuilder):
                 if not service in arr['stat']['services']:
                     _warn("New GuardDuty category not being tracked (detail), please submit an issue to github --> " + service)
                     arr['stat']['services'][service] = 0
-                
+
                 arr['stat']['services'][service] += len(findings_by_severity[severity][service])
 
         arr['detail'] = findings_by_severity
@@ -131,7 +134,7 @@ class GuarddutypageBuilder(PageBuilder):
             'KUBERNETES_AUDIT_LOGS': 'Kubernetes:AuditLogs',
             'EC2_MALWARE_SCAN': 'MalwareProtection:ScanEc2InstanceWithFindings'
         }
-        
+
         arr = {}
         for ds in self.DATASOURCE:
             if isinstance(ds, list):
@@ -141,18 +144,18 @@ class GuarddutypageBuilder(PageBuilder):
                 ft = None
                 if ds[0] in free_trial and ds[1] in free_trial[ds[0]] and 'FreeTrialDaysRemaining' in free_trial[ds[0]][ds[1]]:
                     ft = free_trial[ds[0]][ds[1]]['FreeTrialDaysRemaining']
-                
+
                 arr[key]['FreeTrial'] = ft if ft else 'N/A'
 
                 estat = 'X'
                 if ds[0] in settings and ds[1] in settings[ds[0]]:
                     _settings = settings[ds[0]][ds[1]]
-                    
+
                     if ds[0] == 'MalwareProtection':
                         estat = _settings['EbsVolumes']['Status']
                     else:
                         estat = _settings['Status']
-                
+
                 arr[key]['Enabled'] = self._generate_enabled_icon(estat)
 
             else:
@@ -169,88 +172,88 @@ class GuarddutypageBuilder(PageBuilder):
                 amount = round(float(stat['Total']['Amount']), 4)
                 ds = MAPPED[stat['DataSource']]
                 arr[ds]['Usage'] = amount
-            
+
             total += amount
 
         arr['Total'] = total
         return arr
-    
+
     def _generate_enabled_icon(self, status):
         icon = 'check-circle' if status == 'ENABLED' else 'ban'
         return f"<i class='nav-icon fas fa-{icon}'></i>"
-    
+
     def buildContentSummary(self):
         output = []
-    
+
         # Summary Row
         data_sets = {}
         labels = ['HIGH', 'MEDIUM', 'LOW']
         for region, stat in self.statSummary.items():
             if region == 'services':
                 continue
-    
+
             data_sets[region] = list(stat.values())
-    
+
         html = self.generateBarChart(labels, data_sets)
         card = self.generateCard(self.getHtmlId('hmlStackedChart'), html, cardClass='warning', title='By Criticality', collapse=True)
         items = [[card, '']]
-    
+
         html = self.generateDonutPieChart(self.statSummary['services'], 'servDoughnut')
         card = self.generateCard(self.getHtmlId('servChart'), html, cardClass='warning', title='By Category', collapse=True)
         items.append([card, ''])
-    
+
         output.append(self.generateRowWithCol(6, items, "data-context='gdReport'"))
-    
+
         # Usage/Settings Table
         tab = [
             "<table class='table table-sm'>",
             "<thead><tr><th>Region</th>"
         ]
-    
+
         for ds in self.DATASOURCE:
             if isinstance(ds, list):
                 ds = ':'.join(ds)
             tab.append("<th>{}</th>".format(ds.replace(':', '<br>')))
-    
+
         tab.append("<th>Total</th>")
         tab.append("</tr></thead>")
         tab.append("<tbody><tr>")
-    
+
         for region, o in self.settings.items():
             tab.append("<tr>")
             tab.append("<td>{}</td>".format(region))
-    
+
             for ds in self.DATASOURCE:
                 if isinstance(ds, list):
                     ds = ':'.join(ds)
-    
+
                 msg = "-"
                 if ds in o:
                     d = o[ds]
-                    
+
                     ftrial = d['FreeTrial']
                     if ftrial == 'N/A':
                         d['FreeTrial'] = 0
-                    
+
                     has_trial = "({}D)".format(d['FreeTrial']) if float(d['FreeTrial']) > 0 else ""
                     msg = "{} ${:.4f}{}".format(d['Enabled'], d['Usage'], has_trial)
-    
+
                 tab.append("<td>{}</td>".format(msg))
-    
+
             tab.append("<td><b>${}</b></td>".format(o['Total']))
             tab.append("</tr>")
-    
+
         tab.append("</tbody>")
         tab.append("</table>")
-    
+
         html = ''.join(tab)
         card = self.generateCard(self.getHtmlId('settingTable'), html, cardClass='info', title='Current Settings', collapse=True)
         items = [[card, '']]
-    
+
         output.append(self.generateRowWithCol(12, items, "data-context='settingTable'"))
-    
+
         return output
-    
+
     def buildContentDetail(self):
         output = []
         _h = []
@@ -263,7 +266,7 @@ class GuarddutypageBuilder(PageBuilder):
                 _m.append(f['5'])
             if f['2'] is not None:
                 _l.append(f['2'])
-        
+
         # out = self.__groupFindings(__h)
         tab = []
         if _h:
@@ -272,17 +275,17 @@ class GuarddutypageBuilder(PageBuilder):
             tab.append(self._buildFindingsList('Medium Severity', _m))
         if _l:
             tab.append(self._buildFindingsList('Low Severity', _l))
-        
+
         # tab.append(self.__buildFindingsList(title, items))
         html = 'No findings'
         if tab:
             html = ''.join(tab)
             del tab
-        
+
         items = []
         card = self.generateCard(pid=self.getHtmlId('findings'), html=html, cardClass='alert', title='All findings', titleBadge='', collapse=True, noPadding=False)
         items.append([card, ''])
-        
+
         output.append(self.generateRowWithCol(size=12, items=items, rowHtmlAttr="data-context='findings'"))
         return output
 
@@ -297,27 +300,27 @@ class GuarddutypageBuilder(PageBuilder):
                 for topic, detail in item.items():
                     if topic not in results[serv]:
                         results[serv][topic] = {'items': []}
-                        
+
                     for idx, det in enumerate(detail):
                         results[serv][topic]['items'].append(det)
         return results
-    
-    
+
+
     def _buildFindingsList(self, title, items):
         out = self._groupFindings(items)
         tab = []
         tab.append("<h3>{}</h3>".format(title))
-    
+
         for serv, det in out.items():
             # print(self.findingsLink[serv+det])
-            
+
             cnt = 0
             tab.append("<ul><li>{}".format(serv))
             for topic, arrayItem in det.items():
                 tab.append("<ul><li><a href='{}' target=_blank rel='noopener noreferrer'>{}</a><ul>".format(self.findingsLink[serv+topic], topic))
                 for it in arrayItem['items']:
                     liStyle = supIcon = ''
-                    if it['isArchived'] == True: 
+                    if it['isArchived'] == True:
                         liStyle = "style='font-size: 12px; color: #b5c081'"
                         supIcon = "<i class='fa fa-eye-slash'></i>"
                     else:

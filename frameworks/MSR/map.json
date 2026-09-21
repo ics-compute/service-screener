@@ -1,95 +1,247 @@
 {
-  "metadata": {
-    "originator": "AWS",
-    "shortname": "MSR",
-    "fullname": "MSR baseline checks",
-    "description": "At AWS, security is our top priority. Partner Migration Security Requirements (MSR) is an APJ Core team initiative to help our partners migrate their custom's workloads securely to AWS.<br><br>MSR details security requirements that partners should implement controls for, in line with 5 core security themes of identity and access management, 61 logging and monitoring, infrastructure security, data protection, and incident response. clubbed with additional best practices. MSR will be used by both internal stakeholders like Migration PSA's, relevant account teams and external stakeholders like consulting, migration, and GSI partners to elevate the security posture of workloads being migrated to cloud and ensure ongoing elevated security posture.</ul>",
-    "_": "",
-    "emptyCheckDefaultMsg": "<small><i>Please refer to the Partner Security Requirement (PSR) ID section for further details in the main sheet in the Partner Migration Security Requirements (MSR) sheet. Kindly upload the artefacts in the Artefacts tabs in the MSR sheet corresponding to the respective PSR ID.</i></small>"
-  },
-  "mapping": {
-    "CW.": {
-      "1": [],
-      "2": [],
-      "3": [],
-      "4": []
+    "metadata": {
+        "originator": "AWS",
+        "shortname": "MSR",
+        "fullname": "MSR baseline checks",
+        "description": "At AWS, security is our top priority. Partner Migration Security Requirements (MSR) is an APJ Core team initiative to help our partners migrate their custom's workloads securely to AWS.<br><br>MSR details security requirements that partners should implement controls for, in line with 5 core security themes of identity and access management, 61 logging and monitoring, infrastructure security, data protection, and incident response. clubbed with additional best practices. MSR will be used by both internal stakeholders like Migration PSA's, relevant account teams and external stakeholders like consulting, migration, and GSI partners to elevate the security posture of workloads being migrated to cloud and ensure ongoing elevated security posture.</ul>",
+        "_": "",
+        "emptyCheckDefaultMsg": "<small><i>Please refer to the Partner Security Requirement (PSR) ID section for further details in the main sheet in the Partner Migration Security Requirements (MSR) sheet. Kindly upload the artefacts in the Artefacts tabs in the MSR sheet corresponding to the respective PSR ID.</i></small>"
     },
-    "CD.": {
-      "1": []
-    },
-    "IAM.": {
-      "1": ["iam.ManagedPolicyFullAccessOneServ", "iam.FullAdminAccess", "iam.InlinePolicyFullAccessOneServ", "iam.InlinePolicyFullAdminAccess"],
-      "2": ["iam.rootConsoleLogin30days", "iam.rootConsoleLoginFail3x"],
-      "3": ["iam.rootHasAccessKey"],
-      "4": ["iam.rootMfaActive"],
-      "5": [],
-      "6": []
-    },
-    "DP.": {
-      "1": ["s3.MacieToEnable"],
-      "2": [],
-      "3": ["s3.PublicAccessBlock"],
-      "4": ["s3.BucketVersioning"],
-      "5": ["s3.MFADelete"],
-      "6": [],
-      "7": [],
-      "8": ["rds.DBwithoutSecretManager", "rds.DBwithSomeSecretsManagerOnly", "rds.Secret__NoRotation", "rds.Secret__NotUsed7days"],
-      "9": ["s3.ServerSideEncrypted"],
-      "10": ["lambda.lambdaPublicAccess"],
-      "11": ["kms.KeyRotationEnabled"],
-      "12": ["kms.AdminIsGrantor"],
-      "13": ["rds.SnapshotRDSIsPublic", "ec2.snapshotEBSIsPublic"],
-      "14": ["ec2.ELBSGRulesMatch"],
-      "15": ["ec2.SQLServerEOL"],
-      "16": ["rds.PubliclyAccessible", "rds.SecurityGroupIPRangeNotPrivateCidr"]
-    },
-    "LM.": {
-      "1": [],
-      "2": ["cloudtrail.NeedToEnableCloudTrail"],
-      "3": [],
-      "4": ["cloudtrail.CloudWatchLogsLogGroupArn"],
-      "5": ["cloudtrail.HasOneMultiRegionTrail"],
-      "6": ["s3.MacieToEnable"],
-      "7": ["cloudtrail.EnableTrailS3BucketLogging"],
-      "8": ["cloudtrail.EnableTrailS3BucketMFADelete"],
-      "9": ["s3.ServerSideEncrypted"],
-      "10": [],
-      "11": ["iam.supportPlanLowTier"],
-      "12": ["s3.BucketLogging"],
-      "13": [],
-      "14": [],
-      "15": []
-    },
-    "IP.": {
-      "1": [],
-      "2": [],
-      "3": ["iam.enableGuardDuty"],
-      "4": [],
-      "5": ["ec2.EC2InstanceAutoPublicIP"],
-      "6": ["ec2.EC2SubnetAutoPublicIP"],
-      "7": ["cloudfront.WAFAssociation", "ec2.ELBEnableWAF"],
-      "8": ["cloudtrail.EnableTrailS3BucketMFADelete"],
-      "9": ["rds.DBwithoutSecretManager", "rds.DBwithSomeSecretsManagerOnly", "rds.Secret__NoRotation", "rds.Secret__NotUsed7days"],
-      "10": ["ec2.SGDefaultDisallowTraffic", "rds.SecurityGroupDefault"],
-      "11": [],
-      "12": [],
-      "13": [],
-      "14": [],
-      "15": ["ec2.ASGIMDSv2"],
-      "16": ["lambda.lambdaRuntimeUpdate"]
-    },
-    "IR.": {
-      "1": [],
-      "2": [],
-      "3": [],
-      "4": [],
-      "5": [],
-      "6": [],
-      "7": [],
-      "8": [],
-      "9": [],
-      "10": [],
-      "11": []
+    "mapping": {
+        "CW.": {
+            "1": [],
+            "2": [],
+            "3": [],
+            "4": []
+        },
+        "CD.": {
+            "1": []
+        },
+        "IAM.": {
+            "1": [
+                "iam.ManagedPolicyFullAccessOneServ",
+                "iam.FullAdminAccess",
+                "iam.InlinePolicyFullAccessOneServ",
+                "iam.InlinePolicyFullAdminAccess",
+                "bedrock.bedrockAgentIamRoleOverprivileged",
+                "bedrock.bedrockKBRoleOverprivileged",
+                "bedrock.bedrockACRuntimeWildcardRole",
+                "stepfunctions.sfnRoleOverprivileged"
+            ],
+            "2": [
+                "iam.rootConsoleLogin30days",
+                "iam.rootConsoleLoginFail3x"
+            ],
+            "3": [
+                "iam.rootHasAccessKey"
+            ],
+            "4": [
+                "iam.rootMfaActive"
+            ],
+            "5": [
+                "cognito.cognitoMfaNotEnforced",
+                "cognito.cognitoWeakPasswordPolicy"
+            ],
+            "6": [
+                "cognito.cognitoAdvancedSecurityNotEnforced"
+            ]
+        },
+        "DP.": {
+            "1": [
+                "s3.MacieToEnable"
+            ],
+            "2": [],
+            "3": [
+                "s3.PublicAccessBlock",
+                "secretsmanager.smResourcePolicyPublicAccess",
+                "eventbridge.ebBusPublicPolicy",
+                "ecr.ecrRepoPublicAccess",
+                "emr.emrPubliclyAccessible",
+                "emr.emrBlockPublicAccessDisabled",
+                "codebuild.cbProjectVisibilityPublic"
+            ],
+            "4": [
+                "s3.BucketVersioning"
+            ],
+            "5": [
+                "s3.MFADelete"
+            ],
+            "6": [],
+            "7": [],
+            "8": [
+                "rds.DBwithoutSecretManager",
+                "rds.DBwithSomeSecretsManagerOnly",
+                "rds.Secret__NoRotation",
+                "rds.Secret__NotUsed7days",
+                "secretsmanager.smRotationNotEnabled",
+                "secretsmanager.smRotationOverdue",
+                "secretsmanager.smNotUsedRecently",
+                "secretsmanager.smNotEncryptedWithCMK"
+            ],
+            "9": [
+                "s3.ServerSideEncrypted",
+                "bedrock.bedrockAgentNoEncryptionKey",
+                "bedrock.bedrockGuardrailNoEncryption",
+                "bedrock.bedrockKBNoEncryption",
+                "bedrock.bedrockACMemoryNoEncryption",
+                "stepfunctions.sfnEncryptionAtRest",
+                "sns.snsEncryptionAtRest",
+                "ssm.ssmParameterNotEncrypted",
+                "eventbridge.ebBusNoEncryption",
+                "backup.backupRecoveryPointNotEncrypted",
+                "kinesis.kinesisSSEDisabled",
+                "emr.emrEncryptionAtRestDisabled",
+                "emr.emrNoSecurityConfiguration",
+                "athena.athenaWorkgroupNotEncrypted",
+                "athena.athenaS3OutputNotEncrypted",
+                "athena.athenaMinimumEncryptionDisabled",
+                "codebuild.cbNoArtifactEncryption",
+                "codebuild.cbS3LogsNotEncrypted",
+                "codebuild.cbReportGroupExportNotEncrypted"
+            ],
+            "10": [
+                "lambda.lambdaPublicAccess"
+            ],
+            "11": [
+                "kms.KeyRotationEnabled",
+                "ssm.ssmParameterNoEncryptionCMK",
+                "codebuild.cbEncryptionDefaultKey"
+            ],
+            "12": [
+                "kms.AdminIsGrantor"
+            ],
+            "13": [
+                "rds.SnapshotRDSIsPublic",
+                "ec2.EBSSnapshotIsPublic"
+            ],
+            "14": [
+                "ec2.ELBSGRulesMatch"
+            ],
+            "15": [
+                "ec2.SQLServerEOL"
+            ],
+            "16": [
+                "rds.PubliclyAccessible",
+                "rds.SecurityGroupIPRangeNotPrivateCidr"
+            ]
+        },
+        "LM.": {
+            "1": [],
+            "2": [
+                "cloudtrail.NeedToEnableCloudTrail",
+                "bedrock.bedrockModelInvocationLoggingDisabled",
+                "bedrock.bedrockModelInvocationNoCloudWatch",
+                "bedrock.bedrockModelInvocationNoS3",
+                "config.configRecorderNotEnabled",
+                "config.configNoRules",
+                "securityhub.shubNotEnabled",
+                "securityhub.shubNoStandardsEnabled",
+                "securityhub.shubCISStandardDisabled",
+                "securityhub.shubAutoEnableControlsDisabled",
+                "cloudformation.cfnDriftDetected",
+                "cloudformation.cfnDriftNeverChecked",
+                "cloudformation.cfnStackPolicyMissing"
+            ],
+            "3": [],
+            "4": [
+                "cloudtrail.CloudWatchLogsLogGroupArn"
+            ],
+            "5": [
+                "cloudtrail.HasOneMultiRegionTrail"
+            ],
+            "6": [
+                "s3.MacieToEnable"
+            ],
+            "7": [
+                "cloudtrail.EnableTrailS3BucketLogging"
+            ],
+            "8": [
+                "cloudtrail.EnableTrailS3BucketMFADelete"
+            ],
+            "9": [
+                "s3.ServerSideEncrypted"
+            ],
+            "10": [],
+            "11": [
+                "iam.supportPlanLowTier"
+            ],
+            "12": [
+                "s3.BucketLogging"
+            ],
+            "13": [],
+            "14": [],
+            "15": []
+        },
+        "IP.": {
+            "1": [],
+            "2": [],
+            "3": [
+                "iam.enableGuardDuty",
+                "guardduty.S3ProtectionDisabled",
+                "guardduty.EksAuditLogsDisabled",
+                "guardduty.RdsProtectionDisabled",
+                "guardduty.LambdaProtectionDisabled",
+                "guardduty.RuntimeMonitoringDisabled",
+                "guardduty.MalwareProtectionDisabled",
+                "inspector.inspectorNotEnabled",
+                "inspector.inspectorCriticalFindings",
+                "inspector.inspectorExploitableFindings",
+                "securityhub.shubFindingAggregatorMissing"
+            ],
+            "4": [],
+            "5": [
+                "ec2.EC2InstanceAutoPublicIP"
+            ],
+            "6": [
+                "ec2.EC2SubnetAutoPublicIP"
+            ],
+            "7": [
+                "cloudfront.WAFAssociation",
+                "ec2.ELBEnableWAF",
+                "wafv2.wafv2NoRules",
+                "wafv2.wafv2NoManagedRuleGroups",
+                "wafv2.wafv2NoRateBasedRules"
+            ],
+            "8": [
+                "cloudtrail.EnableTrailS3BucketMFADelete"
+            ],
+            "9": [
+                "rds.DBwithoutSecretManager",
+                "rds.DBwithSomeSecretsManagerOnly",
+                "rds.Secret__NoRotation",
+                "rds.Secret__NotUsed7days",
+                "secretsmanager.smRotationNotEnabled",
+                "ssm.ssmParameterNotEncrypted",
+                "codebuild.cbPlaintextCredentialsInEnvVars",
+                "codebuild.cbSourceUrlCredentials"
+            ],
+            "10": [
+                "ec2.SGDefaultDisallowTraffic",
+                "rds.SecurityGroupDefault"
+            ],
+            "11": [],
+            "12": [],
+            "13": [],
+            "14": [],
+            "15": [
+                "ec2.ASGIMDSv2"
+            ],
+            "16": [
+                "lambda.lambdaRuntimeUpdate"
+            ]
+        },
+        "IR.": {
+            "1": [],
+            "2": [],
+            "3": [],
+            "4": [],
+            "5": [],
+            "6": [],
+            "7": [],
+            "8": [],
+            "9": [],
+            "10": [],
+            "11": []
+        }
     }
-  }
 }

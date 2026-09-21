@@ -1,58 +1,229 @@
 {
-  "Findings": {
-      "category": "T",
-      "^description": "Custom Page Usage",
-      "downtime": 0,
-      "slowness": 0,
-      "additionalCost": 0,
-      "criticality": "H",
-      "shortDesc": "Findings",
-      "ref": [
-      ]
-  },
-  "UsageStat": {
-      "category": "T",
-      "^description": "Custom Page Usage",
-      "downtime": 0,
-      "slowness": 0,
-      "additionalCost": 0,
-      "criticality": "L",
-      "shortDesc": "UsageStat",
-      "ref": [
-      ]
-  },
-  "FreeTrial": {
-      "category": "T",
-      "^description": "Custom Page Usage",
-      "downtime": 0,
-      "slowness": 0,
-      "additionalCost": 0,
-      "criticality": "M",
-      "shortDesc": "FreeTrial",
-      "ref": [
-      ]
-  },
-  "Settings": {
-      "category": "T",
-      "^description": "Custom Page Usage",
-      "downtime": 0,
-      "slowness": 0,
-      "additionalCost": 0,
-      "criticality": "L",
-      "shortDesc": "Settings",
-      "ref": [
-      ]
-  },
-  "FailMeetingCompliances": {
-      "category": "S",
-      "^description": "You have {$COUNT} findings that breach the SLA that yet to be resolved. Checks if Amazon GuardDuty has findings that are non-archived. The rule is NON_COMPLIANT if GuardDuty has non-archived low/medium/high severity findings older than the specified number in the daysLowSev/daysMediumSev/daysHighSev parameter.",
-      "downtime": -1,
-      "slowness": -1,
-      "additionalCost": 0,
-      "criticality": "H",
-      "shortDesc": "Unresolved items after X days",
-      "ref": [
-        "[Unresolved Items Info Mapping]<https://docs.aws.amazon.com/config/latest/developerguide/guardduty-non-archived-findings.html>"
-      ]
-  }
+    "Findings": {
+        "category": "T",
+        "^description": "Custom Page Usage",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "criticality": "H",
+        "shortDesc": "Findings",
+        "ref": [],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": null
+    },
+    "UsageStat": {
+        "category": "T",
+        "^description": "Custom Page Usage",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "criticality": "L",
+        "shortDesc": "UsageStat",
+        "ref": [],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": null
+    },
+    "FreeTrial": {
+        "category": "T",
+        "^description": "Custom Page Usage",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "criticality": "M",
+        "shortDesc": "FreeTrial",
+        "ref": [],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": null
+    },
+    "Settings": {
+        "category": "T",
+        "^description": "Custom Page Usage",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "criticality": "L",
+        "shortDesc": "Settings",
+        "ref": [],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": null
+    },
+    "FailMeetingCompliances": {
+        "category": "S",
+        "^description": "You have {$COUNT} findings that breach the SLA that yet to be resolved. Checks if Amazon GuardDuty has findings that are non-archived. The rule is NON_COMPLIANT if GuardDuty has non-archived low/medium/high severity findings older than the specified number in the daysLowSev/daysMediumSev/daysHighSev parameter.",
+        "downtime": -1,
+        "slowness": -1,
+        "additionalCost": 0,
+        "criticality": "H",
+        "shortDesc": "Unresolved items after X days",
+        "ref": [
+            "[Unresolved Items Info Mapping]<https://docs.aws.amazon.com/config/latest/developerguide/guardduty-non-archived-findings.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/config/latest/developerguide/guardduty-non-archived-findings.html"
+    },
+    "S3ProtectionDisabled": {
+        "category": "S",
+        "^description": "{$COUNT} GuardDuty detector(s) have S3 Protection disabled. Without it GuardDuty does not analyse S3 data events, so it cannot detect the access patterns that indicate credential compromise or data exfiltration from a bucket \u2014 unusual API calls from a new location, large-scale enumeration, or a principal suddenly reading objects it has never touched. S3 is the most common destination for exfiltrated data, so this is the protection feature whose absence hides the most.",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 1,
+        "criticality": "H",
+        "shortDesc": "Enable GuardDuty S3 Protection",
+        "ref": [
+            "[GuardDuty S3 Protection]<https://docs.aws.amazon.com/guardduty/latest/ug/s3-protection.html>",
+            "[Security Hub control GuardDuty.10]<https://docs.aws.amazon.com/securityhub/latest/userguide/guardduty-controls.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/guardduty/latest/ug/s3-protection.html"
+    },
+    "EksAuditLogsDisabled": {
+        "category": "S",
+        "^description": "{$COUNT} GuardDuty detector(s) have EKS Audit Log Monitoring disabled. The Kubernetes audit log is where cluster-level attacks are visible: a pod created with hostPath access to the node filesystem, an anonymous user granted cluster-admin, or a service account token used from outside the cluster. Without this feature none of those reach GuardDuty, and EKS control-plane compromise proceeds unobserved.",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 1,
+        "criticality": "H",
+        "shortDesc": "Enable GuardDuty EKS Audit Log Monitoring",
+        "ref": [
+            "[GuardDuty EKS Protection]<https://docs.aws.amazon.com/guardduty/latest/ug/eks-protection.html>",
+            "[Security Hub control GuardDuty.5]<https://docs.aws.amazon.com/securityhub/latest/userguide/guardduty-controls.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/guardduty/latest/ug/eks-protection.html"
+    },
+    "MalwareProtectionDisabled": {
+        "category": "S",
+        "^description": "{$COUNT} GuardDuty detector(s) have Malware Protection for EC2 disabled. When GuardDuty raises a suspicious-behaviour finding on an instance, Malware Protection automatically snapshots and scans the attached EBS volumes to establish whether malware is actually present. Without it, every such finding requires manual forensic work to triage, which in practice means most are never confirmed either way.",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 1,
+        "criticality": "H",
+        "shortDesc": "Enable GuardDuty Malware Protection for EC2",
+        "ref": [
+            "[Malware Protection for EC2]<https://docs.aws.amazon.com/guardduty/latest/ug/malware-protection.html>",
+            "[Security Hub control GuardDuty.8]<https://docs.aws.amazon.com/securityhub/latest/userguide/guardduty-controls.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/guardduty/latest/ug/malware-protection.html"
+    },
+    "RdsProtectionDisabled": {
+        "category": "S",
+        "^description": "{$COUNT} GuardDuty detector(s) have RDS Protection disabled. RDS Protection analyses login activity against Aurora and RDS databases to detect brute-force attempts and successful logins from anomalous principals or locations. Database credentials leak through code, logs and backups, so the login event is often the first observable sign that a leaked credential is being used \u2014 and without this feature it is not observed at all.",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 1,
+        "criticality": "H",
+        "shortDesc": "Enable GuardDuty RDS Protection",
+        "ref": [
+            "[GuardDuty RDS Protection]<https://docs.aws.amazon.com/guardduty/latest/ug/rds-protection.html>",
+            "[Security Hub control GuardDuty.9]<https://docs.aws.amazon.com/securityhub/latest/userguide/guardduty-controls.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/guardduty/latest/ug/rds-protection.html"
+    },
+    "LambdaProtectionDisabled": {
+        "category": "S",
+        "^description": "{$COUNT} GuardDuty detector(s) have Lambda Protection disabled. Lambda Protection monitors the network activity of function invocations, which is how GuardDuty detects a function that has been made to contact a cryptomining pool, a known command-and-control host, or an unexpected external endpoint. A compromised dependency in a function's package is invisible from the function configuration alone; its outbound traffic is the signal.",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 1,
+        "criticality": "H",
+        "shortDesc": "Enable GuardDuty Lambda Protection",
+        "ref": [
+            "[GuardDuty Lambda Protection]<https://docs.aws.amazon.com/guardduty/latest/ug/lambda-protection.html>",
+            "[Security Hub control GuardDuty.6]<https://docs.aws.amazon.com/securityhub/latest/userguide/guardduty-controls.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/guardduty/latest/ug/lambda-protection.html"
+    },
+    "RuntimeMonitoringDisabled": {
+        "category": "S",
+        "^description": "{$COUNT} GuardDuty detector(s) have Runtime Monitoring disabled. Runtime Monitoring places an agent inside the workload to observe process execution, file access and network connections from within the operating system. It is the only GuardDuty feature that sees activity a log-based source cannot: a process spawned from a web shell, a binary written to /tmp and executed, or a container escaping to the host. Without it detection depends entirely on activity that happens to cross a logged API boundary.",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 1,
+        "criticality": "H",
+        "shortDesc": "Enable GuardDuty Runtime Monitoring",
+        "ref": [
+            "[GuardDuty Runtime Monitoring]<https://docs.aws.amazon.com/guardduty/latest/ug/runtime-monitoring.html>",
+            "[Security Hub control GuardDuty.11]<https://docs.aws.amazon.com/securityhub/latest/userguide/guardduty-controls.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/guardduty/latest/ug/runtime-monitoring.html"
+    },
+    "EksRuntimeMonitoringDisabled": {
+        "category": "S",
+        "^description": "{$COUNT} GuardDuty detector(s) do not have EKS Runtime Monitoring active. Audit logs record what the Kubernetes API was asked to do; runtime monitoring records what the container actually did. Only the latter detects a process launched inside a running pod, a reverse shell established from application code, or an attempt to reach the node's instance metadata endpoint from a container. Both the standalone EKS_RUNTIME_MONITORING feature and RUNTIME_MONITORING with EKS_ADDON_MANAGEMENT satisfy this check.",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 1,
+        "criticality": "H",
+        "shortDesc": "Enable GuardDuty EKS Runtime Monitoring",
+        "ref": [
+            "[EKS Runtime Monitoring]<https://docs.aws.amazon.com/guardduty/latest/ug/runtime-monitoring.html>",
+            "[Security Hub control GuardDuty.7]<https://docs.aws.amazon.com/securityhub/latest/userguide/guardduty-controls.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/guardduty/latest/ug/runtime-monitoring.html"
+    },
+    "EcsRuntimeMonitoringDisabled": {
+        "category": "S",
+        "^description": "{$COUNT} GuardDuty detector(s) do not have ECS/Fargate Runtime Monitoring active. Fargate tasks have no host to install an agent on, so automated agent management is the only practical way to obtain runtime visibility into them. Without it, ECS workloads on Fargate are monitored only through the AWS API activity they generate, and anything happening inside the task is invisible.",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 1,
+        "criticality": "M",
+        "shortDesc": "Enable GuardDuty ECS/Fargate Runtime Monitoring",
+        "ref": [
+            "[Runtime Monitoring for ECS]<https://docs.aws.amazon.com/guardduty/latest/ug/runtime-monitoring.html>",
+            "[Security Hub control GuardDuty.12]<https://docs.aws.amazon.com/securityhub/latest/userguide/guardduty-controls.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/guardduty/latest/ug/runtime-monitoring.html"
+    },
+    "Ec2RuntimeMonitoringDisabled": {
+        "category": "S",
+        "^description": "{$COUNT} GuardDuty detector(s) do not have EC2 Runtime Monitoring active with automated agent management. The GuardDuty agent can be deployed manually, but manual deployment drifts: new instances launch without it and nobody notices, so coverage silently decays. Automated agent management keeps runtime visibility attached to the fleet as it changes rather than as it looked when someone last checked.",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 1,
+        "criticality": "M",
+        "shortDesc": "Enable GuardDuty EC2 Runtime Monitoring",
+        "ref": [
+            "[Runtime Monitoring for EC2]<https://docs.aws.amazon.com/guardduty/latest/ug/runtime-monitoring.html>",
+            "[Security Hub control GuardDuty.13]<https://docs.aws.amazon.com/securityhub/latest/userguide/guardduty-controls.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/guardduty/latest/ug/runtime-monitoring.html"
+    },
+    "AiProtectionDisabled": {
+        "category": "S",
+        "^description": "{$COUNT} GuardDuty detector(s) have AI Protection disabled. AI Protection monitors generative AI workloads \u2014 Bedrock model invocation activity in particular \u2014 for the anomalous access patterns that indicate a stolen credential being used against a model endpoint, or an unusual volume of invocations consistent with abuse. This feature is newer than the published Security Hub control set, so it has no corresponding control; the check exists because the API reports the feature and its absence is a genuine monitoring gap for accounts running Bedrock.",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 1,
+        "criticality": "M",
+        "shortDesc": "Enable GuardDuty AI Protection",
+        "ref": [
+            "[GuardDuty Protection Plans]<https://docs.aws.amazon.com/guardduty/latest/ug/guardduty-features-activation-model.html>",
+            "[Amazon Bedrock security]<https://docs.aws.amazon.com/bedrock/latest/userguide/security.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/guardduty/latest/ug/guardduty-features-activation-model.html"
+    }
 }

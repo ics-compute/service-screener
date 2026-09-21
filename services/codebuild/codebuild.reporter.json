@@ -1,0 +1,257 @@
+{
+    "cbPlaintextCredentialsInEnvVars": {
+        "category": "S",
+        "^description": "{$COUNT} CodeBuild project(s) store credential-shaped environment variables as PLAINTEXT. A PLAINTEXT variable is part of the project definition, so its value is returned to anyone holding codebuild:BatchGetProjects, is visible in the console, and is commonly echoed into build logs by the build itself. AWS access keys handed to a build this way have been a repeated source of real breaches: the key outlives the build, is rarely rotated, and typically carries far broader permissions than the build needs. Use the PARAMETER_STORE or SECRETS_MANAGER variable type so the value is resolved at build time and never stored in the project.",
+        "shortDesc": "Move credential environment variables to Secrets Manager",
+        "criticality": "H",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 1,
+        "ref": [
+            "[Environment variables in build specs]<https://docs.aws.amazon.com/codebuild/latest/userguide/build-spec-ref.html>",
+            "[Security Hub control CodeBuild.2]<https://docs.aws.amazon.com/securityhub/latest/userguide/codebuild-controls.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/codebuild/latest/userguide/build-spec-ref.html"
+    },
+    "cbSourceUrlCredentials": {
+        "category": "S",
+        "^description": "{$COUNT} CodeBuild project(s) embed credentials directly in a source repository URL, in the https://user:password@host form. The credential is then stored in clear text in the project definition, appears in the console, and is written to the build log on every clone. Because it is part of a URL it also tends to be copied into documentation and scripts. Use a CodeBuild source credential or an OAuth connection instead, and rotate the exposed credential -- it should be treated as compromised.",
+        "shortDesc": "Remove credentials embedded in the source repository URL",
+        "criticality": "H",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 1,
+        "ref": [
+            "[Source provider access]<https://docs.aws.amazon.com/codebuild/latest/userguide/access-tokens.html>",
+            "[Security Hub control CodeBuild.1]<https://docs.aws.amazon.com/securityhub/latest/userguide/codebuild-controls.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/codebuild/latest/userguide/access-tokens.html"
+    },
+    "cbPrivilegedMode": {
+        "category": "S",
+        "^description": "{$COUNT} CodeBuild project(s) run with privilegedMode=true, which grants the build container full access to the Docker daemon. Any code the build executes -- including a compromised dependency pulled during the build -- can then start privileged containers, mount the host filesystem, and reach the build host's instance credentials, escaping the isolation the build container is supposed to provide. Privileged mode is only required for building Docker images inside the build; if the project is not doing that, it should be off.",
+        "shortDesc": "Disable privileged mode unless Docker builds require it",
+        "criticality": "H",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 1,
+        "ref": [
+            "[Docker in custom images]<https://docs.aws.amazon.com/codebuild/latest/userguide/sample-docker.html>",
+            "[Build environment reference]<https://docs.aws.amazon.com/codebuild/latest/userguide/build-env-ref.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/codebuild/latest/userguide/sample-docker.html"
+    },
+    "cbProjectVisibilityPublic": {
+        "category": "S",
+        "^description": "{$COUNT} CodeBuild project(s) have projectVisibility=PUBLIC_READ, which publishes build history, logs and artifacts to an unauthenticated public URL. Build logs routinely contain resolved environment variables, internal hostnames, dependency inventories and stack traces, so a public project leaks far more than the build result. Public visibility is intended for open-source projects that deliberately publish their CI output; anything else should be PRIVATE.",
+        "shortDesc": "Set project visibility to PRIVATE",
+        "criticality": "H",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 1,
+        "ref": [
+            "[Public build projects]<https://docs.aws.amazon.com/codebuild/latest/userguide/public-builds.html>",
+            "[Build project settings]<https://docs.aws.amazon.com/codebuild/latest/userguide/change-project.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/codebuild/latest/userguide/public-builds.html"
+    },
+    "cbNoArtifactEncryption": {
+        "category": "S",
+        "^description": "{$COUNT} CodeBuild project(s) set artifacts.encryptionDisabled=true, so build output is written to S3 without CodeBuild-level encryption. Build artifacts are compiled application code and frequently carry embedded configuration, connection strings and bundled dependencies, which makes them a direct route to understanding and attacking the deployed application. Encryption should only be disabled when a downstream consumer genuinely cannot decrypt, which is rare.",
+        "shortDesc": "Enable artifact encryption",
+        "criticality": "H",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 1,
+        "ref": [
+            "[Build artifact encryption]<https://docs.aws.amazon.com/codebuild/latest/userguide/create-project-cli.html>",
+            "[Data protection in CodeBuild]<https://docs.aws.amazon.com/codebuild/latest/userguide/data-protection.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/codebuild/latest/userguide/data-protection.html"
+    },
+    "cbInsecureSSL": {
+        "category": "S",
+        "^description": "{$COUNT} CodeBuild project(s) set source.insecureSsl=true, disabling TLS certificate validation when cloning the source repository. Anyone able to intercept that connection can substitute the source, and the build will compile and deploy the substituted code without complaint -- a supply-chain compromise with no artefact left behind in the repository. This flag exists for self-signed enterprise Git servers; the correct fix there is to trust the CA, not to stop validating.",
+        "shortDesc": "Enable TLS validation on source checkout",
+        "criticality": "H",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 1,
+        "ref": [
+            "[Source provider settings]<https://docs.aws.amazon.com/codebuild/latest/userguide/create-project-cli.html>",
+            "[Data protection in transit]<https://docs.aws.amazon.com/codebuild/latest/userguide/data-protection.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/codebuild/latest/userguide/create-project-cli.html"
+    },
+    "cbEncryptionDefaultKey": {
+        "category": "S",
+        "^description": "{$COUNT} CodeBuild project(s) have no encryptionKey set, so build output is encrypted with the AWS-managed key. The key policy of an AWS-managed key cannot be edited, so access to the artifacts is governed only by S3 and CodeBuild permissions -- the second authorisation layer a customer managed key provides is absent. The account also cannot rotate the key on its own schedule, revoke it to cut off access to already-written artifacts, or audit its use through a key policy condition.",
+        "shortDesc": "Encrypt build output with a customer managed KMS key",
+        "criticality": "M",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 1,
+        "needFullTest": 1,
+        "ref": [
+            "[Data protection in CodeBuild]<https://docs.aws.amazon.com/codebuild/latest/userguide/data-protection.html>",
+            "[Customer managed keys]<https://docs.aws.amazon.com/kms/latest/developerguide/concepts.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/codebuild/latest/userguide/data-protection.html"
+    },
+    "cbS3LogsNotEncrypted": {
+        "category": "S",
+        "^description": "{$COUNT} CodeBuild project(s) write S3 build logs with encryption disabled. Build logs are the single most secret-dense artefact CI produces: they capture resolved environment variables, package registry URLs with tokens, database connection strings, and the full command line of every build step. Storing them unencrypted in S3 means anyone with read access to the bucket obtains all of that without needing any CodeBuild permission at all.",
+        "shortDesc": "Encrypt S3 build logs",
+        "criticality": "M",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Build logging]<https://docs.aws.amazon.com/codebuild/latest/userguide/monitoring-builds.html>",
+            "[Security Hub control CodeBuild.3]<https://docs.aws.amazon.com/securityhub/latest/userguide/codebuild-controls.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/codebuild/latest/userguide/monitoring-builds.html"
+    },
+    "cbLogsDisabled": {
+        "category": "O",
+        "^description": "{$COUNT} CodeBuild project(s) have both CloudWatch Logs and S3 build logging disabled, so no record of any build survives. When a build starts behaving unexpectedly -- a dependency resolving to a different version, a test failing only in CI, or a build that has been tampered with -- there is nothing to investigate. Build logs are also the evidence trail for what was actually deployed, which is required by most change-management controls.",
+        "shortDesc": "Enable build logging to CloudWatch Logs or S3",
+        "criticality": "M",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 1,
+        "needFullTest": 0,
+        "ref": [
+            "[Monitoring CodeBuild]<https://docs.aws.amazon.com/codebuild/latest/userguide/monitoring-builds.html>",
+            "[Security Hub control CodeBuild.4]<https://docs.aws.amazon.com/securityhub/latest/userguide/codebuild-controls.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/codebuild/latest/userguide/monitoring-builds.html"
+    },
+    "cbImageOutdated": {
+        "category": "S",
+        "^description": "{$COUNT} CodeBuild project(s) build on a retired CodeBuild curated image. A retired image stops receiving OS package and toolchain security updates, so every build runs on a base with known unpatched vulnerabilities -- and anything the build produces inherits that base. Retired images can also be withdrawn, which turns a working pipeline into a hard failure at an unpredictable time.",
+        "shortDesc": "Move to a currently supported CodeBuild image",
+        "criticality": "M",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 1,
+        "ref": [
+            "[Docker images provided by CodeBuild]<https://docs.aws.amazon.com/codebuild/latest/userguide/build-env-ref-available.html>",
+            "[Build environment reference]<https://docs.aws.amazon.com/codebuild/latest/userguide/build-env-ref.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/codebuild/latest/userguide/build-env-ref-available.html"
+    },
+    "cbReportGroupExportNotEncrypted": {
+        "category": "S",
+        "^description": "{$COUNT} CodeBuild report group(s) export test or coverage reports to S3 with encryption disabled. Reports describe internal code structure, test names, coverage gaps and failure detail -- a map of where the application is weakly tested. Unencrypted in S3, that map is available to anyone with bucket read access.",
+        "shortDesc": "Encrypt report group S3 exports",
+        "criticality": "M",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Working with report groups]<https://docs.aws.amazon.com/codebuild/latest/userguide/test-report-group.html>",
+            "[Security Hub control CodeBuild.7]<https://docs.aws.amazon.com/securityhub/latest/userguide/codebuild-controls.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/codebuild/latest/userguide/test-report-group.html"
+    },
+    "cbConcurrentBuildLimitNotSet": {
+        "category": "C",
+        "^description": "{$COUNT} CodeBuild project(s) have no concurrentBuildLimit. A webhook misconfiguration, a rebase that pushes many commits, or a retry loop can then start unbounded parallel builds, each consuming compute minutes until the account-level limit is hit. Beyond the direct cost, saturating the account's build capacity starves every other pipeline, so an accident in one project becomes an outage for all of them.",
+        "shortDesc": "Set a concurrent build limit",
+        "criticality": "L",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Build project settings]<https://docs.aws.amazon.com/codebuild/latest/userguide/change-project.html>",
+            "[CodeBuild pricing]<https://aws.amazon.com/codebuild/pricing/>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/codebuild/latest/userguide/change-project.html"
+    },
+    "cbNoVpcConfig": {
+        "category": "S",
+        "^description": "{$COUNT} CodeBuild project(s) are not attached to a VPC, so builds run with direct internet egress and cannot reach private resources. This is the AWS default and is correct for a build that only pulls public dependencies. It is worth reviewing when the build handles sensitive data or needs to reach a private database, because VPC attachment is what allows egress to be constrained by security group and inspected by VPC flow logs.",
+        "shortDesc": "Consider running builds inside a VPC",
+        "criticality": "L",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 1,
+        "ref": [
+            "[Use CodeBuild with a VPC]<https://docs.aws.amazon.com/codebuild/latest/userguide/vpc-support.html>",
+            "[Build environment reference]<https://docs.aws.amazon.com/codebuild/latest/userguide/build-env-ref.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/codebuild/latest/userguide/vpc-support.html"
+    },
+    "cbSourceCredentialsInsecure": {
+        "category": "S",
+        "^description": "{$COUNT} CodeBuild project(s) using GitHub or Bitbucket declare no per-project source authentication. This is not conclusive on its own: CodeBuild stores provider tokens at the account level, so a project with no per-project auth may still be authenticating correctly. It is reported so the account-level source credential can be confirmed to exist and to be scoped no more broadly than the pipelines require.",
+        "shortDesc": "Verify third-party source authentication",
+        "criticality": "L",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 1,
+        "ref": [
+            "[Access tokens for source providers]<https://docs.aws.amazon.com/codebuild/latest/userguide/access-tokens.html>",
+            "[Source provider authentication]<https://docs.aws.amazon.com/codebuild/latest/userguide/sample-access-tokens.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/codebuild/latest/userguide/access-tokens.html"
+    },
+    "cbNoTags": {
+        "category": "O",
+        "^description": "{$COUNT} CodeBuild project(s) carry no tags, so they cannot be attributed to an owning team, environment or cost centre. CI/CD projects accumulate faster than almost any other resource type -- one per branch strategy, per experiment, per migration -- and untagged ones are precisely the projects nobody is willing to delete because nobody can establish who depends on them.",
+        "shortDesc": "Tag the build project with owner and environment",
+        "criticality": "L",
+        "downtime": 0,
+        "slowness": 0,
+        "additionalCost": 0,
+        "needFullTest": 0,
+        "ref": [
+            "[Tagging CodeBuild projects]<https://docs.aws.amazon.com/codebuild/latest/userguide/how-to-tag-project.html>",
+            "[Tagging AWS resources]<https://docs.aws.amazon.com/tag-editor/latest/userguide/tagging.html>"
+        ],
+        "remediation": null,
+        "remediation_risk": null,
+        "remediation_doc": "https://docs.aws.amazon.com/codebuild/latest/userguide/how-to-tag-project.html"
+    }
+}

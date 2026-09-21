@@ -3,6 +3,8 @@ import botocore
 import time
 import os
 import math
+import csv
+import threading
 
 import concurrent.futures as cf
 
@@ -11,17 +13,46 @@ from utils.Tools import _warn, _info
 from utils.CustomPage.CustomPage import CustomPage
 import constants as _C
 
+# Guards concurrent appends to the slow-checks log file.
+_slow_log_lock = threading.Lock()
+
+
+def _log_slow_check(tmp_obj, method_name, timeSpent):
+    """Append a row to the per-run slow_checks.log if configured.
+
+    Called whenever a check takes >= 3s. Best-effort — never raises.
+    Row format: service,resource,check,duration_s
+    """
+    log_path = Config.get('slow_log_path')
+    if not log_path:
+        return
+    try:
+        service = type(tmp_obj).__name__
+        resource = getattr(tmp_obj, '_resourceName', '') or ''
+        with _slow_log_lock:
+            with open(log_path, 'a', encoding='utf-8', newline='') as f:
+                csv.writer(f).writerow([service, resource, method_name, timeSpent])
+    except Exception:
+        # Never let logging break a scan.
+        pass  # nosec B110
+
+
 def runSingleCheck(tmp_obj, method_name):
     debugFlag = Config.get('DEBUG')
     obj = tmp_obj
     try:
         startTime = time.time()
         getattr(obj, method_name)()
+        timeSpent = round(time.time() - startTime, 3)
         if debugFlag:
-            timeSpent = round(time.time() - startTime, 3)
             print('--- --- fn: ' + method_name)
             if timeSpent >= 0.2:
                 _warn("Long running checks {}s".format(timeSpent))
+        elif timeSpent >= 3:
+            _warn("[Slow] {} took {}s".format(method_name, timeSpent))
+
+        if timeSpent >= 3:
+            _log_slow_check(tmp_obj, method_name, timeSpent)
 
         return 'OK'
     except botocore.exceptions.ClientError as e:
@@ -38,16 +69,16 @@ def runSingleCheck(tmp_obj, method_name):
 class Evaluator():
     def __init__(self):
         self.init()
-        
+
     def init(self):
         self.results = {}
         self.InventoryInfo = {}
         self.chartData = {}
         self.classname = type(self).__name__
-    
+
     def addII(self, k, v):
         self.InventoryInfo[k] = v
-        
+
     def getII(self, k):
         if k in self.InventoryInfo:
             return self.InventoryInfo[k]
@@ -60,7 +91,7 @@ class Evaluator():
             self.chartData[title] = {category: data}
         else:
             self.chartData[title][category] = data
-            
+
     def getChartData(self):
         return self.chartData
 
@@ -69,9 +100,9 @@ class Evaluator():
         rulePrefix = serviceName.__name__ + '::rules'
         servMethods = servClass + '::methods'
         rules = Config.get(rulePrefix, [])
-        
+
         debugFlag = Config.get('DEBUG')
-        
+
         ecnt = cnt = 0
         emsg = []
 
@@ -85,32 +116,31 @@ class Evaluator():
 
         cnt = len(filteredMethods)
 
-        isBeta = Config.get('beta', False)
-        if isBeta:
-            with cf.ThreadPoolExecutor() as executor:
-                futures = [executor.submit(runSingleCheck, self, method) for method in filteredMethods]
-                
-                for future in cf.as_completed(futures):
-                    if future.result() == 'OK':
-                        continue
-                    else:
-                        emsg.append(future.result())
-                        ecnt += 1
-        else:
+        # Use concurrent execution by default for better performance
+        # Fall back to sequential if explicitly requested via --sequential flag
+        use_sequential = Config.get('sequential', False)
+
+        if use_sequential:
+            # Sequential execution (for debugging or compatibility)
             for method in methods:
                 if not rules or str.lower(method[6:]) in rules:
                     try:
-                        
+
                         startTime = time.time()
                         if debugFlag:
                             print('--- --- fn: ' + method)
-                            
+
                         getattr(self, method)()
+                        timeSpent = round(time.time() - startTime, 3)
                         if debugFlag:
-                            timeSpent = round(time.time() - startTime, 3)
                             if timeSpent >= 0.2:
                                 _warn("Long running checks {}s".format(timeSpent))
-                        
+                        elif timeSpent >= 3:
+                            _warn("[Slow] {} took {}s".format(method, timeSpent))
+
+                        if timeSpent >= 3:
+                            _log_slow_check(self, method, timeSpent)
+
                     except botocore.exceptions.ClientError as e:
                         code = e.response['Error']['Code']
                         msg = e.response['Error']['Message']
@@ -121,72 +151,96 @@ class Evaluator():
                         ecnt += 1
                         print(traceback.format_exc())
                         emsg.append(traceback.format_exc())
-            
+        else:
+            # Concurrent execution (default for better performance)
+            with cf.ThreadPoolExecutor() as executor:
+                futures = [executor.submit(runSingleCheck, self, method) for method in filteredMethods]
+
+                for future in cf.as_completed(futures):
+                    if future.result() == 'OK':
+                        continue
+                    else:
+                        emsg.append(future.result())
+                        ecnt += 1
+
         if emsg:
             with open(_C.FORK_DIR + '/error.txt', 'a+') as f:
                 f.write('\n\n'.join(emsg))
                 f.close()
-        
+
         scannedKey = 'scanned_'+serviceName.__name__.lower()
         # print(scannedKey)
-        
+
         scanned = Config.get(scannedKey)
         Config.set(scannedKey, {
             'resources': scanned['resources'] + 1,
             'rules': scanned['rules'] + cnt,
             'exceptions': scanned['exceptions'] + ecnt
         })
-        
+
         if debugFlag:
             self.showInfo()
             print()
-        
+
     def showInfo(self):
         print("Class: {}".format(self.classname))
         print(self.getInfo())
         # __pr(self.getInfo())
-        
+
     def getInfo(self):
         return {'results': self.results, 'info': self.InventoryInfo}
-    
-    ## Enhancement 20240117 - Capture all scanned resources    
-    def __del__(self):
-        driver = type(self).__name__.lower()
-        classPrefix = Config.getDriversClassPrefix(driver)
-        
-        ConfigKey = 'AllScannedResources.' + classPrefix
-        scanned = Config.get(ConfigKey, [])
-        
-        # print(classPrefix, Config.get(classPrefix))
-        
-        hasError = '1'
-        for check, find in self.results.items():
-            if find[0] == -1:
-                hasError = '-1'
-                break
-        
-        name = ""
-        if hasattr(self, '_resourceName'):
-            name = self._resourceName
-        else:
-            _warn("driver: '{}' need to set self._resourceName".format(driver))
 
-        scanned.append(';'.join([Config.get(classPrefix, ""), driver or "", name or "", hasError or ""]))
-        Config.set(ConfigKey, scanned)
-            
-            
-        ## Handle custom page requirement
-        cp = CustomPage()
-        
+    ## Enhancement 20240117 - Capture all scanned resources
+    def __del__(self):
+        try:
+            driver = type(self).__name__.lower()
+            classPrefix = Config.getDriversClassPrefix(driver)
+
+            ConfigKey = 'AllScannedResources.' + classPrefix
+            scanned = Config.get(ConfigKey, [])
+
+            # print(classPrefix, Config.get(classPrefix))
+
+            hasError = '1'
+            for check, find in self.results.items():
+                if find[0] == -1:
+                    hasError = '-1'
+                    break
+
+            name = ""
+            if hasattr(self, '_resourceName'):
+                name = self._resourceName
+            else:
+                _warn("driver: '{}' need to set self._resourceName".format(driver))
+
+            # Ensure all values are strings and handle None values
+            config_value = Config.get(classPrefix, "") or ""
+            driver_value = driver or ""
+            name_value = name or ""
+            error_value = hasError or ""
+
+            # Join with proper string values
+            scanned.append(';'.join([config_value, driver_value, name_value, error_value]))
+            Config.set(ConfigKey, scanned)
+
+            ## Handle custom page requirement
+            cp = CustomPage()
+        except Exception as e:
+            # Prevent destructor errors from propagating
+            try:
+                _warn(f"Error in Evaluator destructor for {type(self).__name__}: {str(e)}")
+            except:
+                # If even logging fails, silently ignore to prevent cascade errors
+                pass
+
         emsg = []
         try:
             cp.trackInfo(driver, name, self.results, self.InventoryInfo)
         except Exception:
             print(traceback.format_exc())
             emsg.append(traceback.format_exc())
-        
+
         if emsg:
             with open(_C.FORK_DIR + '/error.txt', 'a+') as f:
                 f.write('\n\n'.join(emsg))
                 f.close()
-        
