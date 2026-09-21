@@ -13,6 +13,7 @@ suppressions.json
 pyvenv.cfg
 .cache/
 logs/
+lib64/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
