@@ -246,6 +246,126 @@ class ExcelBuilder:
         self.obj.close()
         return
 
+    def generateWAFPillarsExcel(self, allCardSummaries):
+        """Generate an actionable workbook with one sheet per WAF pillar.
+
+        Category ``T`` findings are deliberately excluded because they are not
+        mapped to a Well-Architected pillar. Each exported row includes concise,
+        resource-specific remediation notes and links to official AWS guidance
+        when the reporter metadata provides it.
+        """
+        waf_pillars = {
+            'O': 'Operational Excellence',
+            'S': 'Security',
+            'R': 'Reliability',
+            'P': 'Performance Efficiency',
+            'C': 'Cost Optimization',
+        }
+
+        account_path = Config.get('HTML_ACCOUNT_FOLDER_PATH')
+        filename = account_path + '/waf-pillars.xlsx'
+        workbook = xlsxwriter.Workbook(filename)
+        workbook.set_properties({
+            'title': 'AWS Well-Architected Framework Findings',
+            'author': self.XLSX_CREATOR,
+            'created': datetime.now(),
+        })
+
+        bold = workbook.add_format({'bold': True})
+        notes_format = workbook.add_format({'text_wrap': True, 'valign': 'top'})
+        header = [
+            'Service', 'Region', 'Check', 'ResourceID', 'Severity', 'Status',
+            'Notes',
+        ]
+        pillar_rows = {pillar: [] for pillar in waf_pillars}
+
+        for service, card_summary in allCardSummaries.items():
+            for check, detail in card_summary.items():
+                pillar = detail.get('__categoryMain')
+                if pillar not in pillar_rows:
+                    # T is non-WAF/general content; unknown categories are also
+                    # excluded rather than being misclassified into a pillar.
+                    continue
+
+                for region, resources in detail.get('__affectedResources', {}).items():
+                    for resource in resources:
+                        notes, documentation_url = self._buildWAFPillarNotes(
+                            service, check, detail, region, resource
+                        )
+                        pillar_rows[pillar].append({
+                            'values': [
+                                service.upper(),
+                                region,
+                                check,
+                                resource,
+                                self._getCriticallyName(detail.get('criticality', 'I')),
+                                'New',
+                            ],
+                            'notes': notes,
+                            'documentation_url': documentation_url,
+                        })
+
+        for code, name in waf_pillars.items():
+            worksheet = workbook.add_worksheet(name)
+            worksheet.write_row(0, 0, header, bold)
+
+            for row_index, row in enumerate(pillar_rows[code], start=1):
+                worksheet.write_row(row_index, 0, row['values'])
+                if row['documentation_url']:
+                    worksheet.write_url(
+                        row_index,
+                        6,
+                        row['documentation_url'],
+                        notes_format,
+                        string=row['notes'],
+                    )
+                else:
+                    worksheet.write(row_index, 6, row['notes'], notes_format)
+
+            worksheet.autofit()
+            worksheet.set_column(6, 6, 80, notes_format)
+
+        workbook.close()
+        return filename
+
+    def _buildWAFPillarNotes(self, service, check, detail, region, resource):
+        """Create concise, finding-specific steps for every WAF workbook row."""
+        from utils.RemediationCatalog import RemediationCatalog
+
+        guidance = RemediationCatalog.get_guidance(service, check, detail)
+        resource_remediation = (
+            detail.get('__remediationByResource', {})
+            .get(region, {})
+            .get(resource, {})
+        )
+        command = ' '.join(
+            str(resource_remediation.get('command', '')).split()
+        )
+        unresolved = resource_remediation.get('unresolved', [])
+
+        steps = [f"1. Review: {guidance['summary']}"]
+        if command and not unresolved:
+            steps.append(f'2. Remediate (reviewed command): {command}')
+        else:
+            steps.append(f"2. Remediate: {guidance['instruction']}")
+            if command:
+                steps.append(f'Command template: {command}')
+        if unresolved:
+            fields = ', '.join(str(field) for field in unresolved)
+            steps.append(f'Input required: {fields}')
+        steps.append('3. Verify: validate the change and rerun Service Screener.')
+
+        documentation_url = detail.get('remediation_doc')
+        if not (
+            isinstance(documentation_url, str)
+            and documentation_url.startswith('https://docs.aws.amazon.com/')
+        ):
+            documentation_url = None
+        else:
+            steps.append('Docs: AWS official documentation')
+
+        return '\n'.join(steps), documentation_url
+
     def _getPillarName(self, category):
         mapped = {
             'T': 'Text',

@@ -165,10 +165,17 @@ class OutputGenerator:
                 os.rename(legacy_index, legacy_index_renamed)
                 _info(f"Legacy index.html renamed to index-legacy.html")
 
-        # Build Excel summary
+        # Build both Excel deliverables after worksheets are complete.
         excel_obj.buildSummaryPage(summary)
         excel_obj._save()
         _info("Excel workItem.xlsx generation complete")
+
+        waf_card_summaries = {
+            service: data['summary']
+            for service, data in api_result_array.items()
+        }
+        waf_pillars_path = excel_obj.generateWAFPillarsExcel(waf_card_summaries)
+        _info(f"WAF pillars workbook generated: {waf_pillars_path}")
 
         # Now build Findings page (requires workItem.xlsx to exist)
         from utils.CustomPage.CustomPage import CustomPage
