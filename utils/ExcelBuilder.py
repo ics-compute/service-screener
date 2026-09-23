@@ -250,9 +250,8 @@ class ExcelBuilder:
         """Generate an actionable workbook with one sheet per WAF pillar.
 
         Category ``T`` findings are deliberately excluded because they are not
-        mapped to a Well-Architected pillar. Each exported row includes concise,
-        resource-specific remediation notes and links to official AWS guidance
-        when the reporter metadata provides it.
+        mapped to a Well-Architected pillar. Each exported row carries a short
+        Notes cell built by ``_buildWAFPillarNotes``.
         """
         waf_pillars = {
             'O': 'Operational Excellence',
@@ -271,8 +270,26 @@ class ExcelBuilder:
             'created': datetime.now(),
         })
 
-        bold = workbook.add_format({'bold': True})
-        notes_format = workbook.add_format({'text_wrap': True, 'valign': 'top'})
+        header_format = workbook.add_format({
+            'bold': True,
+            'font_color': '#FFFFFF',
+            'bg_color': '#1976D2',
+            'border': 1,
+            'border_color': '#000000',
+            'align': 'center',
+            'valign': 'vcenter',
+        })
+        table_format = workbook.add_format({
+            'border': 1,
+            'border_color': '#000000',
+            'valign': 'top',
+        })
+        notes_format = workbook.add_format({
+            'text_wrap': True,
+            'valign': 'top',
+            'border': 1,
+            'border_color': '#000000',
+        })
         header = [
             'Service', 'Region', 'Check', 'ResourceID', 'Severity', 'Status',
             'Notes',
@@ -289,7 +306,7 @@ class ExcelBuilder:
 
                 for region, resources in detail.get('__affectedResources', {}).items():
                     for resource in resources:
-                        notes, documentation_url = self._buildWAFPillarNotes(
+                        notes = self._buildWAFPillarNotes(
                             service, check, detail, region, resource
                         )
                         pillar_rows[pillar].append({
@@ -302,69 +319,83 @@ class ExcelBuilder:
                                 'New',
                             ],
                             'notes': notes,
-                            'documentation_url': documentation_url,
                         })
 
         for code, name in waf_pillars.items():
             worksheet = workbook.add_worksheet(name)
-            worksheet.write_row(0, 0, header, bold)
+            worksheet.write_row(0, 0, header, header_format)
 
             for row_index, row in enumerate(pillar_rows[code], start=1):
-                worksheet.write_row(row_index, 0, row['values'])
-                if row['documentation_url']:
-                    worksheet.write_url(
-                        row_index,
-                        6,
-                        row['documentation_url'],
-                        notes_format,
-                        string=row['notes'],
-                    )
-                else:
-                    worksheet.write(row_index, 6, row['notes'], notes_format)
+                worksheet.write_row(row_index, 0, row['values'], table_format)
+                worksheet.write(row_index, 6, row['notes'], notes_format)
 
             worksheet.autofit()
-            worksheet.set_column(6, 6, 80, notes_format)
+            worksheet.set_column(6, 6, 80)
 
         workbook.close()
         return filename
 
+    # Reporter impact flags (1 = yes, -1 = depends) rendered in the Notes column.
+    _IMPACT_LABELS = (
+        ('downtime', 'downtime'),
+        ('slowness', 'performance impact'),
+        ('additionalCost', 'extra cost'),
+        ('needFullTest', 'regression test'),
+    )
+
     def _buildWAFPillarNotes(self, service, check, detail, region, resource):
-        """Create concise, finding-specific steps for every WAF workbook row."""
+        """Build the short Notes text for one WAF workbook row.
+
+        Line 1: what to do (the finding's shortDesc plus a specific hint when
+                the catalog has one).
+        Line 2: expected impact of the fix, only when the reporter flags any.
+        Line 3: the reviewed CLI command resolved for this resource, or the
+                template with the placeholders still to be filled in.
+        """
         from utils.RemediationCatalog import RemediationCatalog
 
         guidance = RemediationCatalog.get_guidance(service, check, detail)
+        lines = [' '.join(filter(None, (
+            self._asSentence(guidance['summary']),
+            self._asSentence(guidance['instruction']),
+        )))]
+
+        impact = self._describeImpact(detail)
+        if impact:
+            lines.append(f'Impact: {impact}.')
+
         resource_remediation = (
             detail.get('__remediationByResource', {})
             .get(region, {})
             .get(resource, {})
         )
-        command = ' '.join(
-            str(resource_remediation.get('command', '')).split()
-        )
-        unresolved = resource_remediation.get('unresolved', [])
+        command = ' '.join(str(resource_remediation.get('command', '')).split())
+        unresolved = [str(field) for field in resource_remediation.get('unresolved', [])]
+        if command and unresolved:
+            lines.append(f"CLI template (fill {', '.join(unresolved)}): {command}")
+        elif command:
+            risk = detail.get('remediation_risk')
+            label = f'CLI ({risk} risk)' if risk else 'CLI'
+            lines.append(f'{label}: {command}')
 
-        steps = [f"1. Review: {guidance['summary']}"]
-        if command and not unresolved:
-            steps.append(f'2. Remediate (reviewed command): {command}')
-        else:
-            steps.append(f"2. Remediate: {guidance['instruction']}")
-            if command:
-                steps.append(f'Command template: {command}')
-        if unresolved:
-            fields = ', '.join(str(field) for field in unresolved)
-            steps.append(f'Input required: {fields}')
-        steps.append('3. Verify: validate the change and rerun Service Screener.')
+        return '\n'.join(lines)
 
-        documentation_url = detail.get('remediation_doc')
-        if not (
-            isinstance(documentation_url, str)
-            and documentation_url.startswith('https://docs.aws.amazon.com/')
-        ):
-            documentation_url = None
-        else:
-            steps.append('Docs: AWS official documentation')
+    def _describeImpact(self, detail):
+        parts = []
+        for key, label in self._IMPACT_LABELS:
+            value = detail.get(key)
+            if value == 1:
+                parts.append(label)
+            elif value == -1:
+                parts.append(f'possible {label}')
+        return ', '.join(parts)
 
-        return '\n'.join(steps), documentation_url
+    @staticmethod
+    def _asSentence(text):
+        text = ' '.join(str(text or '').split()).rstrip('.')
+        if not text:
+            return ''
+        return text[0].upper() + text[1:] + '.'
 
     def _getPillarName(self, category):
         mapped = {

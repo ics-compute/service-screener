@@ -805,7 +805,7 @@
 		"additionalCost": 0,
 		"needFullTest": 1,
 		"criticality": "I",
-		"shortDesc": "Review Cost Threshold For Parallelism setting",
+		"shortDesc": "Review Max Degree Of Parallelism setting",
 		"ref": [
 			"[MAXDOP Guide (AWS)]<https://aws.amazon.com/blogs/database/best-practices-for-configuring-performance-parameters-for-amazon-rds-for-sql-server>",
 			"[MAXDOP Guide (MSFT)]<https://learn.microsoft.com/en-us/sql/database-engine/configure-windows/configure-the-max-degree-of-parallelism-server-configuration-option?view=sql-server-ver16#considerations>"
@@ -1146,7 +1146,7 @@
 		"additionalCost": 0,
 		"needFullTest": 1,
 		"criticality": "M",
-		"shortDesc": "RDS is idle",
+		"shortDesc": "Enable autovacuum",
 		"ref": [
 			"[Impact on Turning off Autovacuum]<https://docs.aws.amazon.com/awssupport/latest/user/performance-checks.html#rds-autovacuum-off>",
 			"[Autovacuum Best Practices]<https://aws.amazon.com/blogs/database/understanding-autovacuum-in-amazon-rds-for-postgresql-environments>"
@@ -1197,7 +1197,7 @@
 		"additionalCost": 0,
 		"needFullTest": 1,
 		"criticality": "M",
-		"shortDesc": "Update enable_indexonlyscan value to 1",
+		"shortDesc": "Update enable_indexscan value to 1",
 		"ref": [
 			"[PostgreSQL Documentation on IndexScan]<https://www.postgresql.org/docs/current/runtime-config-query.html#GUC-ENABLE-INDEXSCAN>",
 			"[AWS view on enable_indexscan]<https://docs.aws.amazon.com/awssupport/latest/user/performance-checks.html#rds-enable-indexscan-parameter-off>"

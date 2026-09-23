@@ -1,8 +1,16 @@
-"""Validate remediation-guidance coverage for reporter rules and framework mappings."""
+"""Validate remediation-guidance coverage for reporter rules and framework mappings.
+
+Every reporter rule must yield a non-empty summary (the text that leads the
+``Notes`` column of ``waf-pillars.xlsx``). A specific instruction is optional;
+the script reports how many rules have one so regressions in catalog matching
+are visible. Every check referenced by a framework map must exist as a
+reporter rule.
+"""
 
 import json
 import re
 import sys
+from collections import Counter
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -38,12 +46,18 @@ def framework_references(value):
 def main():
     rules = load_reporter_rules()
     guidance_errors = []
+    families = Counter()
 
     for finding_key, detail in rules.items():
         service, check = finding_key.split('.', 1)
         guidance = RemediationCatalog.get_guidance(service, check, detail)
-        if not guidance['summary'] or not guidance['instruction']:
+        if not guidance['summary']:
             guidance_errors.append(finding_key)
+        families[guidance['family']] += 1
+
+    stale_exact = sorted(
+        key for key in RemediationCatalog._EXACT_GUIDANCE if key not in rules
+    )
 
     framework_errors = []
     framework_references_seen = 0
@@ -56,17 +70,22 @@ def main():
                 if reference not in rules:
                     framework_errors.append(f'{map_path.parent.name}: {reference}')
 
-    if guidance_errors or framework_errors:
+    if guidance_errors or framework_errors or stale_exact:
         if guidance_errors:
-            print('Rules without remediation guidance:')
+            print('Rules without a remediation summary:')
             print('\n'.join(sorted(guidance_errors)))
+        if stale_exact:
+            print('Exact guidance entries that match no reporter rule:')
+            print('\n'.join(stale_exact))
         if framework_errors:
             print('Framework references without reporter rules:')
             print('\n'.join(sorted(framework_errors)))
         return 1
 
+    with_hint = len(rules) - families['none']
     print(
-        f'Remediation guidance covers {len(rules)} reporter rules and '
+        f'Remediation guidance covers {len(rules)} reporter rules '
+        f'({with_hint} with a specific hint, {families["exact"]} exact) and '
         f'{framework_references_seen} framework references.'
     )
     return 0

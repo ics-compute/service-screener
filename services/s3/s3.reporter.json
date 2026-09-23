@@ -34,7 +34,7 @@
 	"AccessControlList": {
 		"category": "S",
 		"^description": "You are using {$COUNT} S3 buckets with ACLs. ACLs are legacy access control mechanisms that predate IAM. Instead of ACLs, we recommend using S3 bucket policies or AWS Identity and Access Management (IAM) policies to manage access to your S3 buckets.",
-		"shortDesc": "Enable SSE",
+		"shortDesc": "Disable ACLs (bucket owner enforced)",
 		"criticality": "L",
 		"downtime": 0,
 		"slowness": 0,
