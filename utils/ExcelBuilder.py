@@ -329,6 +329,8 @@ class ExcelBuilder:
                 worksheet.write_row(row_index, 0, row['values'], table_format)
                 worksheet.write(row_index, 6, row['notes'], notes_format)
 
+            worksheet.autofilter(0, 0, len(pillar_rows[code]), len(header) - 1)
+            worksheet.freeze_panes(1, 0)
             worksheet.autofit()
             worksheet.set_column(6, 6, 80)
 
@@ -347,9 +349,12 @@ class ExcelBuilder:
         """Build the short Notes text for one WAF workbook row.
 
         Line 1: what to do (the finding's shortDesc plus a specific hint when
-                the catalog has one).
-        Line 2: expected impact of the fix, only when the reporter flags any.
-        Line 3: the reviewed CLI command resolved for this resource, or the
+                the catalog or the description has one).
+        Line 2: "Why:" the consequence of leaving it, taken from the reporter
+                description when it adds information.
+        Line 3: "Fix impact:" downtime/performance/cost/testing flags, only
+                when the reporter sets any.
+        Line 4: the reviewed CLI command resolved for this resource, or the
                 template with the placeholders still to be filled in.
         """
         from utils.RemediationCatalog import RemediationCatalog
@@ -360,9 +365,12 @@ class ExcelBuilder:
             self._asSentence(guidance['instruction']),
         )))]
 
+        if guidance.get('context'):
+            lines.append(f"Why: {guidance['context']}")
+
         impact = self._describeImpact(detail)
         if impact:
-            lines.append(f'Impact: {impact}.')
+            lines.append(f'Fix impact: {impact}.')
 
         resource_remediation = (
             detail.get('__remediationByResource', {})

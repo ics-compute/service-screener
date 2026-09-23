@@ -47,6 +47,7 @@ def main():
     rules = load_reporter_rules()
     guidance_errors = []
     families = Counter()
+    with_context = 0
 
     for finding_key, detail in rules.items():
         service, check = finding_key.split('.', 1)
@@ -54,6 +55,8 @@ def main():
         if not guidance['summary']:
             guidance_errors.append(finding_key)
         families[guidance['family']] += 1
+        if guidance['context']:
+            with_context += 1
 
     stale_exact = sorted(
         key for key in RemediationCatalog._EXACT_GUIDANCE if key not in rules
@@ -85,7 +88,8 @@ def main():
     with_hint = len(rules) - families['none']
     print(
         f'Remediation guidance covers {len(rules)} reporter rules '
-        f'({with_hint} with a specific hint, {families["exact"]} exact) and '
+        f'({with_hint} with a specific hint, {families["exact"]} exact, '
+        f'{with_context} with a why-line) and '
         f'{framework_references_seen} framework references.'
     )
     return 0

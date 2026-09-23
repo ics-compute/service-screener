@@ -47,6 +47,30 @@ class RemediationCatalog:
         'ec2.ASGELBHealthCheckEnabled':
             'Set the Auto Scaling group health check type to ELB with a suitable grace period.',
 
+        'ec2.EC2DiskMonitor': (
+            'Install the CloudWatch agent (for example via SSM) to publish disk metrics, then alarm on low free space.',
+            'Without agent metrics a full disk is invisible to CloudWatch until the instance or its application fails.',
+        ),
+        'ec2.EC2MemoryMonitor': (
+            'Install the CloudWatch agent (for example via SSM) to publish memory metrics, then alarm on high usage.',
+            'Without agent metrics memory exhaustion is invisible to CloudWatch until the instance swaps or crashes.',
+        ),
+
+        'ec2.ELBCrossZone': (
+            'Enable cross-zone load balancing on the load balancer.',
+            'Without it each AZ receives an equal share of traffic regardless of how many targets it has, so the AZ with fewer targets is overloaded.',
+        ),
+        'ec2.SGDefaultInUsed':
+            'Move the attached resources to a purpose-built security group and leave the default group unused.',
+        'ec2.SGDefaultDisallowTraffic':
+            'Remove every inbound and outbound rule from the default security group.',
+        'ec2.SGAllPortOpen':
+            'Replace the all-ports rule with the specific ports and protocols the workload needs.',
+        'ec2.SGAllPortOpenToAll':
+            'Replace the all-ports 0.0.0.0/0 rule with specific ports and approved source CIDRs.',
+        'ec2.SGAllTCPOpen':
+            'Replace the all-TCP rule with the specific ports the workload needs.',
+
         # IAM
         'iam.passwordLastChange90':
             'Have the user change the password, or set a maximum password age in the account password policy.',
@@ -239,7 +263,7 @@ class RemediationCatalog:
          (r'least.?privilege', r'full ?(admin|access)', r'administrator', r'over.?privileg\w*', r'\bwildcard\b',
           r'\bpermissions?\b', r'sensitive .*actions?', r'restrict\w* .*(polic|actions?|access)',
           r'limit (access|permissions?)'),
-         r'inactive|unused|inline|managed ?polic|user ?group|password ?polic|individual|identit',
+         r'inactive|unused|use managed polic|user ?group|password ?polic|individual|identit',
          'Scope the policy to least privilege and re-test the affected identities.'),
         ('network_controls',
          (r'security ?groups?', r'\bsgs?\b', r'\bingress\b', r'\begress\b', r'network ?acl', r'\bnacl\b',
@@ -273,7 +297,7 @@ class RemediationCatalog:
         ('capacity_and_quota',
          (r'\bquotas?\b', r'\blimits?\b', r'\bcapacity\b', r'\bthrottl\w*', r'\bthroughput\b', r'\bconcurren\w*',
           r'free ?storage', r'\bstorage\b.*\b(full|free|low|space)\b'),
-         r'temp_file_limit|rate.?limit|no ?limit|unlimited|monitor|task.level|cpu and memory|resource ?limits',
+         r'temp_file_limit|rate.?limit|no ?limit|unlimited|monitor|task.level|cpu and memory|resource ?limits|limit\w* (the )?(access|permission)',
          'Review current usage, then adjust capacity or request a quota increase.'),
         ('unused_cleanup',
          (r'\bunused\b', r'\binactive\b', r'\bidle\b', r'not ?(in ?use|used|attached)', r'\bunattached\b',
@@ -291,6 +315,28 @@ class RemediationCatalog:
     # description as well, because the summary alone carries too few words.
     _SHORT_SUMMARY_WORDS = 4
 
+    # Description sentences that open like this are instructions, not context.
+    _ACTION_LEAD_RE = re.compile(
+        r'^(you should|we recommend|it is recommended|please|make sure|ensure|consider|'
+        r'enable|disable|configure|set|use|remove|add|create|rotate|review|restrict|apply|attach|'
+        r'delete|upgrade|update|migrate|require|limit|increase|reduce|avoid|block|turn|move|define|'
+        r'specify|implement|check|tag|encrypt|associate|install|run|switch|replace|renew|enforce|'
+        r'reconfigure|verify|investigate|resize|terminate|deploy|publish|send|store|separate|'
+        r'document|rename|activate|allow|follow|plan|adjust|scope|distribute|protect|grant|'
+        r'optimize|monitor|opt|place|recreate|request|prune|fix|keep|redact|close|perform|setup|'
+        r'restore|tune|prefer|stop|constrain|change|choose|select|assign|register|provision|'
+        r'schedule|test|validate|confirm|clean|audit|evaluate|leverage|utilize|adopt|complete)\b',
+        re.IGNORECASE,
+    )
+    _CONTEXT_MAX_CHARS = 220
+    _CONTEXT_MAX_SENTENCES = 2
+    # Pointer sentences that carry no explanation of their own.
+    _NOISE_RE = re.compile(
+        r'^(for more (information|details)|refer to|see |learn more|read more|more details|'
+        r'more information|please refer|please see|for details|for further)',
+        re.IGNORECASE,
+    )
+
     _STOPWORDS = frozenset((
         'the', 'a', 'an', 'and', 'or', 'to', 'of', 'on', 'in', 'for', 'with', 'then', 'it', 'its',
         'every', 'all', 'so', 'that', 'this', 'is', 'are', 'be', 'via', 'by', 'from', 'at', 'into',
@@ -304,13 +350,18 @@ class RemediationCatalog:
         check: str,
         detail: Mapping[str, Any],
     ) -> Mapping[str, str]:
-        """Return ``summary``, ``instruction`` (may be empty) and ``family``."""
+        """Return ``summary``, ``instruction``, ``context`` (both may be empty) and ``family``.
+
+        ``context`` is the "why it matters" text: hand-written for exact
+        entries, otherwise the first description sentences that neither
+        repeat the summary nor read as an instruction.
+        """
         summary = cls._clean(detail.get('shortDesc'))
         if not summary:
             summary = cls._humanize_check(check)
 
-        finding_key = f'{service}.{check}'
-        instruction = cls._EXACT_GUIDANCE.get(finding_key)
+        exact = cls._EXACT_GUIDANCE.get(f'{service}.{check}')
+        instruction, context = exact if isinstance(exact, tuple) else (exact, '')
         family = 'exact' if instruction else None
 
         if not instruction:
@@ -322,12 +373,32 @@ class RemediationCatalog:
             if first_sentence:
                 family, instruction = cls._match_family(first_sentence.lower())
 
-        if instruction and cls._is_redundant(summary, instruction):
+        if instruction and family != 'exact' and cls._is_redundant(summary, instruction):
             instruction = ''
+
+        why = []
+        known = f'{summary} {instruction}'
+        for sentence in cls._description_sentences(detail.get('^description')):
+            if cls._NOISE_RE.match(sentence) or cls._is_redundant(known, sentence):
+                continue
+            if cls._ACTION_LEAD_RE.match(sentence):
+                if not instruction:
+                    instruction = sentence
+                    family = family or 'description'
+                    known = f'{summary} {instruction}'
+                continue
+            why.append(sentence)
+        if not context:
+            context = cls._join_context(why)
+        if not context and not instruction:
+            # Nothing specific survived; the finding statement itself is still
+            # better than a bare noun-phrase summary.
+            context = cls._join_context(cls._description_sentences(detail.get('^description'))[:1])
 
         return {
             'summary': summary,
             'instruction': instruction or '',
+            'context': context or '',
             'family': family or 'none',
         }
 
@@ -357,6 +428,39 @@ class RemediationCatalog:
             for word in words
             if len(word) >= 3 and word not in cls._STOPWORDS
         }
+
+    @classmethod
+    def _description_sentences(cls, description: Any):
+        raw = re.sub(r'<strong><u>(\d+)</u></strong>', r'\1', str(description or ''))
+        text = cls._clean(raw).replace('{$COUNT}', 'N')
+        text = re.sub(r'([.!?])(?=[A-Z][a-z])', r'\1 ', text)                       # "buckets.This" -> "buckets. This"
+        text = re.sub(r'^\[[^\]]*\]\s*:?\s*', '', text)                          # "[Category] "
+        text = re.sub(r'^[A-Z][A-Za-z0-9 /&()-]{2,45}:\s+(?=[A-Z0-9])', '', text)  # "Title: "
+        parts = re.split(r'(?<=[.!?])\s+(?=[A-Z0-9(])', text)
+        return [part.strip() for part in parts if len(part.strip()) >= 12]
+
+    @classmethod
+    def _join_context(cls, sentences):
+        out, total = [], 0
+        for sentence in sentences:
+            if not sentence.endswith(('.', '!', '?')):
+                sentence += '.'
+            if not out and len(sentence) > cls._CONTEXT_MAX_CHARS:
+                return cls._truncate(sentence, cls._CONTEXT_MAX_CHARS)
+            if len(out) >= cls._CONTEXT_MAX_SENTENCES or total + len(sentence) + 1 > cls._CONTEXT_MAX_CHARS:
+                break
+            out.append(sentence)
+            total += len(sentence) + 1
+        return ' '.join(out)
+
+    @staticmethod
+    def _truncate(text, limit):
+        head = text[:limit - 1]
+        cuts = [m.start() for m in re.finditer(r'[,;:]\s|\s[—–-]\s', head)]
+        cut = max((c for c in cuts if c >= limit // 2), default=-1)
+        if cut == -1:
+            cut = head.rfind(' ')
+        return head[:cut].rstrip(' ,;:') + '…'
 
     @staticmethod
     def _clean(value: Any) -> str:
