@@ -75,22 +75,24 @@ The stack is automatically created at the start of each run with a unique name (
 4. In the same CloudShell terminal, run this script to install the dependencies:
    ``` bash
    cd /tmp
-   python3.13 -m venv .
-   source bin/activate
-   python3.13 -m pip install --upgrade pip
-   rm -rf ics-ssc
    git clone https://github.com/ics-compute/service-screener.git ics-ssc
    cd ics-ssc
+   python3 -m venv .
+   source bin/activate
+   python3 -m pip install --upgrade pip
    pip install -r requirements.txt
-   python3.13 scripts/unzip_botocore_lambda_runtime.py
+   
+   # alias the screener
+   alias screener='python3 $(pwd)/main.py'
+
+   # or
+   python3 main.py --regions <e.g. ap-southeast-1> --profile <profile-name>
 
    # Build Cloudscape UI (required for --beta 1 mode; package-lock.json is authoritative)
    cd cloudscape-ui
    npm ci
    npm run build
    cd ..
-
-   alias screener='python3 $(pwd)/main.py'
    ```
 
    **Note:** AWS CloudShell comes with Node.js pre-installed. The Cloudscape UI build takes approximately 30-60 seconds.
