@@ -1,9 +1,9 @@
 """Short remediation guidance for Service Screener findings.
 
-The guidance feeds the ``Notes`` column of ``waf-pillars.xlsx``. It never
-invents AWS CLI commands: runnable commands come only from a reviewed
-``remediation`` template in the reporter definition, resolved per resource by
-``utils/RemediationResolver.py``.
+The guidance feeds the ``Description``, ``Impact``, ``Remediation`` and
+``Effort`` columns of ``waf-pillars.xlsx``. It never invents AWS CLI commands:
+runnable commands come only from a reviewed ``remediation`` template in the
+reporter definition, resolved per resource by ``utils/RemediationResolver.py``.
 
 Every finding gets a ``summary`` (its ``shortDesc``). A short ``instruction``
 is added only when it is specific enough to help:
@@ -14,6 +14,16 @@ is added only when it is specific enough to help:
 
 A hint that mostly repeats the summary is dropped, and when nothing specific
 applies the instruction is empty: a generic sentence adds length, not meaning.
+The ``Remediation`` cell is the instruction, or the summary when there is
+none; the ``Description`` cell is the summary plus the "why it matters"
+sentences from the reporter description.
+
+``impact`` is a list of tags: the Well-Architected pillars the reporter assigns
+to the check (main pillar first), keyword-derived extras (data loss,
+compliance) and the reporter's downtime / slowness / additionalCost /
+needFullTest flags. ``effort`` (Low, Medium or High) starts from a base for
+the kind of change (an explicit exact entry, else ``remediation_risk``, else
+the matched family) and is raised by the same reporter flags.
 """
 
 import re
@@ -50,11 +60,36 @@ class RemediationCatalog:
         'ec2.EC2DiskMonitor': (
             'Install the CloudWatch agent (for example via SSM) to publish disk metrics, then alarm on low free space.',
             'Without agent metrics a full disk is invisible to CloudWatch until the instance or its application fails.',
+            'medium',
         ),
         'ec2.EC2MemoryMonitor': (
             'Install the CloudWatch agent (for example via SSM) to publish memory metrics, then alarm on high usage.',
             'Without agent metrics memory exhaustion is invisible to CloudWatch until the instance swaps or crashes.',
+            'medium',
         ),
+        'ec2.EC2LowUtilization': (
+            'Downsize the instance to the type Compute Optimizer recommends after checking peak usage.', '', 'low'),
+        'ec2.EC2AMD': (
+            'Change the instance type to the AMD equivalent (for example m5 to m5a) after testing.', '', 'low'),
+        'ec2.EC2Graviton': (
+            'Change the instance type to the Graviton equivalent (for example m5 to m6g) after rebuilding the workload for arm64.',
+            '', 'medium'),
+        'ec2.ComputeOptimizerEnabled': (
+            'Opt in to Compute Optimizer for the account or organization.', '', 'low'),
+        'ec2.ELBConnectionDraining': (
+            'Enable connection draining on the Classic Load Balancer with a timeout that covers the longest request.', '', 'low'),
+        'ec2.ASGELBHealthCheckValidation': (
+            'Attach the Auto Scaling group to its load balancer or target group, or switch the health check type to EC2.', '', 'low'),
+        'ec2.ASGInstancesRemoved': (
+            'Set the desired capacity above zero, or delete the Auto Scaling group if it is no longer used.', '', 'low'),
+        'ec2.ASGTargetGroupELBExist': (
+            'Attach the target group to a load balancer, or detach it from the Auto Scaling group.', '', 'low'),
+        'ec2.ASGClassicLBExist': (
+            'Detach the deleted Classic Load Balancer from the Auto Scaling group and attach a current one.', '', 'low'),
+        'ec2.ASGAMIExist': (
+            'Point the launch template or configuration at an existing AMI, then refresh the instances.', '', 'medium'),
+        'ec2.ASGIMDSv2': (
+            'Set HttpTokens=required in the launch template metadata options and roll the instances.', '', 'medium'),
 
         'ec2.ELBCrossZone': (
             'Enable cross-zone load balancing on the load balancer.',
@@ -86,8 +121,11 @@ class RemediationCatalog:
         # RDS general
         'rds.FreeStorage20pct':
             'Increase allocated storage or enable storage autoscaling on the instance.',
-        'rds.DefaultMasterAdmin':
-            'Restore a snapshot into a new instance with a non-default master username, then cut over.',
+        'rds.DefaultMasterAdmin': (
+            'Restore a snapshot into a new instance with a non-default master username, then cut over.', '', 'high'),
+        'rds.EngineVersionMinor': (
+            'Apply the minor engine version upgrade in a maintenance window (or enable auto minor version upgrade) after testing.',
+            '', 'low'),
         'rds.CACertExpiringIn365days':
             'Modify the instance to the current RDS CA and update client trust stores before the old CA expires.',
         'rds.MSSQLorPG__TransportEncrpytionDisabled':
@@ -156,6 +194,43 @@ class RemediationCatalog:
         # S3
         's3.AccessControlList':
             'Set Object Ownership to "Bucket owner enforced" so ACLs are ignored; check no client relies on ACL grants first.',
+
+        # Findings whose shortDesc is a noun phrase, so without an entry the
+        # Remediation cell would only repeat the finding name.
+        'cloudtrail.HasCoverGlobalServices': (
+            'Enable "Include global service events" on at least one multi-region trail.', '', 'low'),
+        'cloudtrail.HasManagementEventsCaptured': (
+            'Enable management events (read and write) on at least one multi-region trail.', '', 'low'),
+        'cloudtrail.HasDataEventsCaptured': (
+            'Add data event selectors (S3 objects, Lambda invocations) to a trail for the workloads that need them.', '', 'low'),
+        'cloudwatch.trailWithCWLogsWithoutMetrics': (
+            'Create the CIS metric filters and alarms on the CloudTrail log group (root usage, IAM changes, console sign-in failures and the rest).',
+            '', 'medium'),
+        'cognito.cognitoTokenValidityTooLong': (
+            'Set access and ID token validity to 60 minutes or less and refresh token validity to 30 days or less on each app client.',
+            '', 'low'),
+        'dynamodb.disabledTTL': (
+            'Enable TTL with an expiry attribute so expired items are removed at no write cost.', '', 'low'),
+        'dynamodb.systemErrors': (
+            'Review the SystemErrors metric and add SDK retries with exponential backoff; open a support case if errors persist.',
+            '', 'medium'),
+        'dynamodb.conditionalCheckFailedRequests': (
+            'Review the application logic behind the failed conditional writes; expected optimistic-locking conflicts can be ignored.',
+            '', 'medium'),
+        'dynamodb.userErrors': (
+            'Fix the client requests behind the UserErrors metric (invalid parameters, missing tables, throttled requests).',
+            '', 'medium'),
+        'dynamodb.trailDeleteBackup': (
+            'Confirm the backup deletions were intentional and restrict backup deletion to approved roles.', '', 'low'),
+        'dynamodb.trailDeleteTable': (
+            'Confirm the table deletions were intentional and enable deletion protection on the remaining production tables.',
+            '', 'low'),
+        'eks.eksNoManagedNodeGroups': (
+            'Create a managed node group (or Fargate profile) and move workloads off self-managed nodes.', '', 'high'),
+        'eks.eksNoManagedStorageDrivers': (
+            'Install the EBS CSI add-on (and EFS CSI if needed) through EKS add-ons.', '', 'low'),
+        'guardduty.FailMeetingCompliances': (
+            'Triage and resolve the GuardDuty findings that have breached the SLA, then archive them.', '', 'medium'),
     }
 
     # (family, match patterns, exclude pattern, hint). Ordered specific to
@@ -182,7 +257,7 @@ class RemediationCatalog:
         ('alerting',
          (r'\balarms?\b', r'\bnotifications?\b', r'event ?subscriptions?', r'\bsns ?topic\b', r'\balert\w*'),
          r'metric ?math|composite|insufficient|dashboard',
-         'Point it at an SNS topic with a live subscriber and send a test notification.'),
+         'Point the alarm or notification at an SNS topic with a live subscriber and send a test notification.'),
         ('tagging',
          (r'\btags?\b', r'\btagging\b', r'\btagged\b', r'cost.?(center|centre|allocation)'),
          r'immutab|tag ?mutability|propagat|sensitive|classification',
@@ -194,14 +269,15 @@ class RemediationCatalog:
         ('deletion_protection',
          (r'delet\w* ?protection', r'termination ?protection'),
          None,
-         'Blocks accidental deletes; turn it off only for an intended delete.'),
+         'Enable deletion protection; turn it off only for an intended delete.'),
         ('backup_and_recovery',
-         (r'\bbackups?\b', r'\bsnapshots?\b', r'\brestore\b', r'recovery ?points?', r'point.in.time', r'\bpitr\b'),
-         r'too ?many|excessive|unused|old |public|encrypt|shared|scan|vault|air.?gapped|lifecycle|opt.?in|strategy|deleted',
+         (r'\bbackups?\b', r'\bsnapshots?\b', r'recovery ?points?', r'point.in.time', r'\bpitr\b'),
+         r'too ?many|excessive|unused|old |public|encrypt|shared|scan|vault|air.?gapped|lifecycle|opt.?in|strategy|deleted'
+         r'|archiv|tier|analyz|agent|pending|deletion',
          'Enable automated backups with the required retention and test a restore.'),
         ('retention',
          (r'\bretention\b', r'\blifecycle\b', r'\bretain\w*'),
-         r'lifecycle ?config|notebook',
+         r'lifecycle ?config|notebook|expired|persist|investigate',
          'Set the retention or lifecycle period required by policy.'),
         ('certificate_expiry',
          (r'cert\w*.*(expir|renew)', r'(expir|renew).*cert\w*'),
@@ -219,20 +295,20 @@ class RemediationCatalog:
          (r'multi.?az', r'single.?az', r'\bfailover\b', r'\breplicas?\b', r'\breplication\b',
           r'availability ?zones?', r'disaster ?recovery', r'origin ?group'),
          r'healthy ?percent|minimum|bucket|event replication',
-         'Test failover afterwards in a maintenance window.'),
+         'Add the standby, replica, or failover configuration, then test failover in a maintenance window.'),
         ('key_rotation',
          (r'\bkey ?rotation\b', r'rotat\w*.*\bkms\b', r'\bkms\b.*rotat\w*'),
          r'access ?key',
          'Enable automatic key rotation on the KMS key.'),
         ('encryption',
          (r'encrypt\w*', r'\bkms\b', r'\bcmks?\b', r'at ?rest', r'in ?transit', r'secure ?string', r'\bsse\b'),
-         r'key ?polic|cross.?account|grantor|pending ?deletion|unused|orphan',
-         'Use an approved KMS key, then confirm clients still connect.'),
+         r'key ?polic|cross.?account|grantor|pending ?deletion|unused|orphan|\bgrants?\b|duplicate|enforc|sse-c',
+         'Enable encryption with an approved KMS key, then confirm clients still connect.'),
         ('public_access',
          (r'\bpublic(ly)? ?(access\w*|exposure|endpoint|ips?|read|write|snapshots?|amis?|buckets?)',
           r'internet.?facing', r'open to the internet', r'0\.0\.0\.0/0', r'wildcard ?principal',
           r'anonymous ?access', r'\bpublic\b.*\b(restrict|disable|block)', r'(restrict|disable|block)\w*.*\bpublic\b'),
-         None,
+         r'document|approval',
          'Remove public access; allow only approved principals and CIDR ranges.'),
         ('mfa',
          (r'\bmfa\b', r'multi.?factor'),
@@ -247,7 +323,7 @@ class RemediationCatalog:
           r'\brotate\b.*\b(secrets?|passwords?|credentials?|access ?keys?)\b',
           r'\b(secrets?|passwords?|credentials?|access ?keys?)\b.*\brotat', r'no ?rotat'),
          None,
-         'Verify the next rotation succeeds and consumers pick up the new value.'),
+         'Rotate the credential (automatically where the service supports it), then verify consumers pick up the new value.'),
         ('authentication',
          (r'\bauthenticat\w*', r'\bauthoriz(ation|ers?)\b', r'\bunauthenticated\b', r'identity ?provider',
           r'\bidp\b', r'\bsso\b', r'\bfederat\w*', r'\biam ?auth', r'\boauth'),
@@ -257,7 +333,7 @@ class RemediationCatalog:
          (r'\bsecrets?\b', r'access ?keys?', r'api ?keys?', r'\bcredentials?\b', r'\bpasswords?\b',
           r'plain.?text', r'hard.?coded'),
          r'description|purpose|version|replicat|staging|\bno ?secret\b|expir|\broot\b|remove|delete|compromised'
-         r'|individual|identit|temporary|validity|resolves|valuefrom|reference',
+         r'|individual|identit|temporary|validity|resolves|valuefrom|reference|deletion|pending',
          'Move the credential into Secrets Manager and remove it from code, configs, and environment variables.'),
         ('least_privilege',
          (r'least.?privilege', r'full ?(admin|access)', r'administrator', r'over.?privileg\w*', r'\bwildcard\b',
@@ -278,17 +354,18 @@ class RemediationCatalog:
         ('threat_detection',
          (r'guard ?duty', r'\binspector\b', r'security ?hub', r'\bmacie\b', r'access ?analyzer', r'\bdetective\b'),
          r'findings?|remediat|resolve|standard|control|aggregat|integrat',
-         'Enable it in every active region and route findings to the security team.'),
+         'Enable the service in every active region and route findings to the security team.'),
         ('log_delivery',
          (r'\b(enable|send|stream|archive|deliver|publish|export|turn on|configure|set ?up)\b.*\b(logs?|logging|trail|audit)\b',
           r'\b(logs?|logging)\b.*\b(disabled|missing|not (enabled|configured))', r'flow ?logs?', r'access ?log',
           r'\bcloud ?trail\b.*\b(cloud ?watch|s3|log)'),
          r'insights|retention|metric|dashboard|analysis|validation|encrypt|group ?does ?not ?exist|log ?statement|error',
-         'After enabling, confirm a test event appears at the log destination.'),
+         'Enable logging, then confirm a test event appears at the log destination.'),
         ('upgrade_and_patch',
          (r'\bversions?\b', r'\bupgrade\w*', r'\bpatch\w*', r'\bdeprecat\w*', r'end.of.(support|life)', r'\beol\b',
           r'\boutdated\b', r'\bolder\b', r'\blatest\b', r'\bgeneration\b', r'\bruntime\b', r'\bunsupported\b'),
-         r'versioning|api ?version|schema|revis|version ?stages?|versions ?excessive|policy ?version|label|delivery|error|pinned|unpin',
+         r'versioning|api ?version|schema|revis|version ?stages?|versions ?excessive|policy ?version|label|delivery|error|pinned|unpin'
+         r'|excessive|obsolete|agentcore|vault|empty|failed',
          'Test the upgrade first, then apply it in a maintenance window.'),
         ('autoscaling',
          (r'auto.?scal\w*', r'\bscaling\b'),
@@ -297,18 +374,79 @@ class RemediationCatalog:
         ('capacity_and_quota',
          (r'\bquotas?\b', r'\blimits?\b', r'\bcapacity\b', r'\bthrottl\w*', r'\bthroughput\b', r'\bconcurren\w*',
           r'free ?storage', r'\bstorage\b.*\b(full|free|low|space)\b'),
-         r'temp_file_limit|rate.?limit|no ?limit|unlimited|monitor|task.level|cpu and memory|resource ?limits|limit\w* (the )?(access|permission)',
+         r'temp_file_limit|rate.?limit|no ?limit|unlimited|monitor|task.level|cpu and memory|resource ?limits|limit\w* (the )?(access|permission)'
+         r'|depth|complexity|configure|usage ?plan',
          'Review current usage, then adjust capacity or request a quota increase.'),
         ('unused_cleanup',
          (r'\bunused\b', r'\binactive\b', r'\bidle\b', r'not ?(in ?use|used|attached)', r'\bunattached\b',
           r'\borphan\w*', r'\bstale\b', r'\bempty\b', r'no longer'),
-         r'timeout|session|revis|version',
-         'Confirm nothing depends on it, then remove it; snapshot or export first if the data matters.'),
+         r'timeout|session|revis|version|re-?ingest|sync|roll|drift|refresh|rotat|re-?scan|rebuild|investigate|vault',
+         'Confirm nothing depends on the resource, then remove it; snapshot or export first if the data matters.'),
         ('cost_optimization',
          (r'\bcosts?\b', r'right.?siz\w*', r'under.?utili\w*', r'savings ?plans?', r'\breserved\b',
           r'over.?siz\w*', r'\bcheaper\b', r'\bsavings?\b', r'\bdownsiz\w*'),
          r'report|explorer|budget',
          'Validate the saving against usage data before changing the resource.'),
+    )
+
+    # Impact tags. Pillars come from the reporter ``category`` string (main
+    # pillar first); the flags are the reporter's own remediation attributes,
+    # shown with the same meaning as the "impact tags" in the Cloudscape UI.
+    _PILLAR_IMPACT = {
+        'S': 'Security',
+        'R': 'Availability',
+        'P': 'Performance',
+        'C': 'Additional cost',
+        'O': 'Operations',
+    }
+    # flag -> (tag when 1, tag when -1 "depends")
+    _FLAG_IMPACT = (
+        ('downtime', 'Downtime', 'Possible downtime'),
+        ('slowness', 'Performance', 'Possible performance impact'),
+        ('additionalCost', 'Additional cost', 'Possible additional cost'),
+        ('needFullTest', 'Requires testing', 'May require testing'),
+    )
+    # (tag, patterns, exclude pattern, also scan the description). Data-loss
+    # patterns run on the check name and summary only, because descriptions
+    # mention backups and snapshots in passing; compliance names (CIS, PCI,
+    # Security Hub controls) are reliable wherever they appear.
+    _IMPACT_EXTRAS = (
+        ('Data loss',
+         (r'\bbackups?\b', r'\bsnapshots?\b', r'\bversioning\b', r'delet\w* ?protection',
+          r'termination ?protection', r'point.in.time', r'\bpitr\b', r'recovery ?points?',
+          r'\bmfa ?delete\b', r'object ?lock', r'vault ?lock', r'\bdurab'),
+         r'too ?many|excessive|unused|old |public|encrypt|shared|scan|cost|archive|copy',
+         False),
+        ('Compliance',
+         (r'\bcis\b', r'\bcomplian', r'\baudit', r'\bpci\b', r'\bhipaa\b', r'\bgdpr\b',
+          r'\bsoc ?2\b', r'security ?hub control', r'config rule', r'\bcloud ?trail\b'),
+         None,
+         True),
+    )
+
+    # Effort. Base score by the kind of change, then the reporter flags add to
+    # it: a change that needs downtime or a full test is more work to schedule
+    # and verify. Score < 0.5 is Low, < 2 is Medium, otherwise High.
+    _EFFORT_BASE = {'low': 0.0, 'medium': 1.0, 'high': 2.0}
+    _EFFORT_UNKNOWN = 0.5
+    _FAMILY_EFFORT = {
+        'tagging': 'low', 'versioning': 'low', 'deletion_protection': 'low', 'retention': 'low',
+        'key_rotation': 'low', 'alerting': 'low', 'log_delivery': 'low', 'threat_detection': 'low',
+        'mfa': 'low', 'password_policy': 'low', 'backup_and_recovery': 'low', 'waf_visibility': 'low',
+        'certificate_validation': 'low', 'certificate_expiry': 'low', 'unused_cleanup': 'low',
+        'capacity_and_quota': 'low',
+        'waf_association': 'medium', 'waf_protection': 'medium', 'certificate_and_tls': 'medium',
+        'encryption': 'medium', 'public_access': 'medium', 'secret_rotation': 'medium',
+        'secrets_and_credentials': 'medium', 'least_privilege': 'medium', 'network_controls': 'medium',
+        'failure_handling': 'medium', 'autoscaling': 'medium', 'cost_optimization': 'medium',
+        'upgrade_and_patch': 'medium',
+        'availability_and_failover': 'high', 'authentication': 'high',
+    }
+    # flag -> (score when 1, score when -1 "depends")
+    _FLAG_EFFORT = (
+        ('downtime', 1.0, 0.5),
+        ('needFullTest', 0.5, 0.25),
+        ('slowness', 0.5, 0.25),
     )
 
     # Summaries this short are tried against the first sentence of the
@@ -325,7 +463,11 @@ class RemediationCatalog:
         r'document|rename|activate|allow|follow|plan|adjust|scope|distribute|protect|grant|'
         r'optimize|monitor|opt|place|recreate|request|prune|fix|keep|redact|close|perform|setup|'
         r'restore|tune|prefer|stop|constrain|change|choose|select|assign|register|provision|'
-        r'schedule|test|validate|confirm|clean|audit|evaluate|leverage|utilize|adopt|complete)\b',
+        r'schedule|test|validate|confirm|clean|audit|evaluate|leverage|utilize|adopt|complete|'
+        r'decrease|downsize|archive|export|subscribe|wire|write|transition|resolve|reconcile|'
+        r'record|roll|source|drop|generate|strengthen|shorten|re-?enable|re-?ingest|re-?scan|'
+        r'rebuild|remediate|prioriti[sz]e|triage|auto-?verify|detach|revoke|isolate|harden|'
+        r'consolidate|redirect|refresh|do not|never)\b',
         re.IGNORECASE,
     )
     _CONTEXT_MAX_CHARS = 220
@@ -349,32 +491,45 @@ class RemediationCatalog:
         service: str,
         check: str,
         detail: Mapping[str, Any],
-    ) -> Mapping[str, str]:
-        """Return ``summary``, ``instruction``, ``context`` (both may be empty) and ``family``.
+    ) -> Mapping[str, Any]:
+        """Return the workbook text for one finding.
 
-        ``context`` is the "why it matters" text: hand-written for exact
-        entries, otherwise the first description sentences that neither
-        repeat the summary nor read as an instruction.
+        ``summary`` is the shortDesc; ``instruction`` and ``context`` may be
+        empty; ``family`` names the matching rule. ``context`` is the "why it
+        matters" text: hand-written for exact entries, otherwise the first
+        description sentences that neither repeat the summary nor read as an
+        instruction.
+
+        The column values are ``description`` (summary plus context),
+        ``remediation`` (the instruction, or the summary when there is none;
+        the caller appends the CLI line), ``impact`` (list of tags) and
+        ``effort`` (``Low``, ``Medium`` or ``High``).
         """
         summary = cls._clean(detail.get('shortDesc'))
         if not summary:
             summary = cls._humanize_check(check)
 
-        exact = cls._EXACT_GUIDANCE.get(f'{service}.{check}')
-        instruction, context = exact if isinstance(exact, tuple) else (exact, '')
+        instruction, context, exact_effort = cls._exact_entry(f'{service}.{check}')
         family = 'exact' if instruction else None
+        # Where the instruction came from: 'exact', 'family' (a generic hint)
+        # or 'description' (a sentence of the reporter description).
+        source = 'exact' if instruction else None
 
+        primary = f'{cls._humanize_check(check)} {summary}'.lower()
+        text_family, hint = cls._match_family(primary)
         if not instruction:
-            primary = f'{cls._humanize_check(check)} {summary}'.lower()
-            family, instruction = cls._match_family(primary)
+            family, instruction = text_family, hint
+            source = 'family' if instruction else None
 
         if not instruction and len(summary.split()) <= cls._SHORT_SUMMARY_WORDS:
             first_sentence = cls._first_sentence(detail.get('^description'))
             if first_sentence:
                 family, instruction = cls._match_family(first_sentence.lower())
+                source = 'family' if instruction else None
 
-        if instruction and family != 'exact' and cls._is_redundant(summary, instruction):
+        if instruction and source == 'family' and cls._is_redundant(summary, instruction):
             instruction = ''
+            source = None
 
         why = []
         known = f'{summary} {instruction}'
@@ -384,6 +539,7 @@ class RemediationCatalog:
             if cls._ACTION_LEAD_RE.match(sentence):
                 if not instruction:
                     instruction = sentence
+                    source = 'description'
                     family = family or 'description'
                     known = f'{summary} {instruction}'
                 continue
@@ -395,12 +551,119 @@ class RemediationCatalog:
             # better than a bare noun-phrase summary.
             context = cls._join_context(cls._description_sentences(detail.get('^description'))[:1])
 
+        # An imperative summary ("Enable MultiAZ") is itself the action, so it
+        # leads the Remediation cell and only the consequence stays in the
+        # Description; a generic family hint follows it as the second sentence.
+        # A noun-phrase summary ("EC2 Disk Monitoring") stays in Description.
+        imperative = bool(cls._ACTION_LEAD_RE.match(summary))
+        if source == 'family' and imperative:
+            remediation = ' '.join((cls._as_sentence(summary), cls._as_sentence(instruction)))
+            description = context or cls._as_sentence(summary)
+        elif instruction:
+            remediation = cls._as_sentence(instruction)
+            description = ' '.join(filter(None, (cls._as_sentence(summary), context)))
+        else:
+            remediation = cls._as_sentence(summary)
+            description = context or remediation
+
+        effort_family = family if family in cls._FAMILY_EFFORT else text_family
+
         return {
             'summary': summary,
             'instruction': instruction or '',
             'context': context or '',
             'family': family or 'none',
+            'description': description,
+            'remediation': remediation,
+            'impact': cls._impact(check, summary, detail),
+            'effort': cls._effort(detail, effort_family, exact_effort),
         }
+
+    @classmethod
+    def _exact_entry(cls, key):
+        """Return (instruction, context, effort) for an exact entry, empty strings when absent."""
+        entry = cls._EXACT_GUIDANCE.get(key)
+        if entry is None:
+            return '', '', ''
+        if isinstance(entry, str):
+            return entry, '', ''
+        parts = tuple(entry) + ('', '')
+        return parts[0] or '', parts[1] or '', parts[2] or ''
+
+    @classmethod
+    def _impact(cls, check, summary, detail):
+        """Ordered, de-duplicated impact tags for one finding."""
+        tags = [cls._PILLAR_IMPACT[p] for p in cls._pillars(detail) if p in cls._PILLAR_IMPACT]
+
+        title = f'{cls._humanize_check(check)} {summary}'.lower()
+        description = cls._clean(detail.get('^description')).lower()
+        for tag, patterns, exclude, scan_description in cls._IMPACT_EXTRAS:
+            if exclude and re.search(exclude, title):
+                continue
+            text = f'{title} {description}' if scan_description else title
+            if any(re.search(pattern, text) for pattern in patterns):
+                tags.append(tag)
+
+        for key, yes, maybe in cls._FLAG_IMPACT:
+            value = cls._flag(detail, key)
+            if value == 1:
+                tags.append(yes)
+            elif value == -1 and yes not in tags:
+                tags.append(maybe)
+
+        ordered = []
+        for tag in tags:
+            if tag not in ordered:
+                ordered.append(tag)
+        return ordered
+
+    @classmethod
+    def _effort(cls, detail, family, exact_effort):
+        """Low, Medium or High: base for the kind of change plus the reporter flags."""
+        risk = str(detail.get('remediation_risk') or '').lower()
+        if exact_effort in cls._EFFORT_BASE:
+            score = cls._EFFORT_BASE[exact_effort]
+        elif risk in cls._EFFORT_BASE:
+            score = cls._EFFORT_BASE[risk]
+        elif family in cls._FAMILY_EFFORT:
+            score = cls._EFFORT_BASE[cls._FAMILY_EFFORT[family]]
+        else:
+            score = cls._EFFORT_UNKNOWN
+
+        for key, yes, maybe in cls._FLAG_EFFORT:
+            value = cls._flag(detail, key)
+            if value == 1:
+                score += yes
+            elif value == -1:
+                score += maybe
+
+        if score < 0.5:
+            return 'Low'
+        if score < 2.0:
+            return 'Medium'
+        return 'High'
+
+    @staticmethod
+    def _pillars(detail):
+        """Pillar letters, main pillar first, from raw reporter data or a Reporter card summary."""
+        category = detail.get('category')
+        if category:
+            return list(str(category))
+        return list(str(detail.get('__categoryMain') or '')) + list(str(detail.get('__categorySub') or ''))
+
+    @staticmethod
+    def _flag(detail, key):
+        try:
+            return int(detail.get(key) or 0)
+        except (TypeError, ValueError):
+            return 0
+
+    @staticmethod
+    def _as_sentence(text):
+        text = ' '.join(str(text or '').split()).rstrip('.')
+        if not text:
+            return ''
+        return text[0].upper() + text[1:] + '.'
 
     @classmethod
     def _match_family(cls, text):

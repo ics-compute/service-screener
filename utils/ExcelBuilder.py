@@ -250,8 +250,9 @@ class ExcelBuilder:
         """Generate an actionable workbook with one sheet per WAF pillar.
 
         Category ``T`` findings are deliberately excluded because they are not
-        mapped to a Well-Architected pillar. Each exported row carries a short
-        Notes cell built by ``_buildWAFPillarNotes``.
+        mapped to a Well-Architected pillar. Each exported row carries the
+        Description, Impact, Remediation and Effort cells built by
+        ``_buildWAFPillarColumns``.
         """
         waf_pillars = {
             'O': 'Operational Excellence',
@@ -284,16 +285,31 @@ class ExcelBuilder:
             'border_color': '#000000',
             'valign': 'top',
         })
-        notes_format = workbook.add_format({
+        wrap_format = workbook.add_format({
             'text_wrap': True,
+            'valign': 'top',
+            'border': 1,
+            'border_color': '#000000',
+        })
+        centre_format = workbook.add_format({
+            'align': 'center',
             'valign': 'top',
             'border': 1,
             'border_color': '#000000',
         })
         header = [
             'Service', 'Region', 'Check', 'ResourceID', 'Severity', 'Status',
-            'Notes',
+            'Description', 'Impact', 'Remediation', 'Effort',
         ]
+        # (header, width, format) for the text columns written after the values.
+        text_columns = (
+            ('description', 60, wrap_format),
+            ('impact', 28, wrap_format),
+            ('remediation', 70, wrap_format),
+            ('effort', 10, centre_format),
+        )
+        first_text_column = len(header) - len(text_columns)
+        effort_column = header.index('Effort')
         pillar_rows = {pillar: [] for pillar in waf_pillars}
 
         for service, card_summary in allCardSummaries.items():
@@ -306,7 +322,7 @@ class ExcelBuilder:
 
                 for region, resources in detail.get('__affectedResources', {}).items():
                     for resource in resources:
-                        notes = self._buildWAFPillarNotes(
+                        columns = self._buildWAFPillarColumns(
                             service, check, detail, region, resource
                         )
                         pillar_rows[pillar].append({
@@ -318,59 +334,58 @@ class ExcelBuilder:
                                 self._getCriticallyName(detail.get('criticality', 'I')),
                                 'New',
                             ],
-                            'notes': notes,
+                            'columns': columns,
                         })
 
         for code, name in waf_pillars.items():
             worksheet = workbook.add_worksheet(name)
             worksheet.write_row(0, 0, header, header_format)
 
+            row_count = len(pillar_rows[code])
             for row_index, row in enumerate(pillar_rows[code], start=1):
                 worksheet.write_row(row_index, 0, row['values'], table_format)
-                worksheet.write(row_index, 6, row['notes'], notes_format)
+                for offset, (key, _width, cell_format) in enumerate(text_columns):
+                    worksheet.write(
+                        row_index, first_text_column + offset,
+                        row['columns'][key], cell_format,
+                    )
 
-            worksheet.autofilter(0, 0, len(pillar_rows[code]), len(header) - 1)
+            worksheet.autofilter(0, 0, row_count, len(header) - 1)
             worksheet.freeze_panes(1, 0)
             worksheet.autofit()
-            worksheet.set_column(6, 6, 80)
+            for offset, (_key, width, _format) in enumerate(text_columns):
+                worksheet.set_column(first_text_column + offset, first_text_column + offset, width)
+            if row_count:
+                # Effort is an estimate; let the operator adjust it from the same list.
+                worksheet.data_validation(1, effort_column, row_count, effort_column, {
+                    'validate': 'list',
+                    'source': self.EFFORT_LEVELS,
+                })
 
         workbook.close()
         return filename
 
-    # Reporter impact flags (1 = yes, -1 = depends) rendered in the Notes column.
-    _IMPACT_LABELS = (
-        ('downtime', 'downtime'),
-        ('slowness', 'performance impact'),
-        ('additionalCost', 'extra cost'),
-        ('needFullTest', 'regression test'),
-    )
+    EFFORT_LEVELS = ['Low', 'Medium', 'High']
 
-    def _buildWAFPillarNotes(self, service, check, detail, region, resource):
-        """Build the short Notes text for one WAF workbook row.
+    def _buildWAFPillarColumns(self, service, check, detail, region, resource):
+        """Build the Description, Impact, Remediation and Effort cells for one row.
 
-        Line 1: what to do (the finding's shortDesc plus a specific hint when
-                the catalog or the description has one).
-        Line 2: "Why:" the consequence of leaving it, taken from the reporter
-                description when it adds information.
-        Line 3: "Fix impact:" downtime/performance/cost/testing flags, only
-                when the reporter sets any.
-        Line 4: the reviewed CLI command resolved for this resource, or the
-                template with the placeholders still to be filled in.
+        Description: the finding's shortDesc plus the consequence taken from
+                     the reporter description when it adds information.
+        Impact:      comma-separated tags from the catalog: the pillars the
+                     reporter assigns, data-loss / compliance keywords, and the
+                     reporter's downtime / slowness / additionalCost /
+                     needFullTest flags.
+        Remediation: the catalog instruction (or the shortDesc when there is
+                     none), then the reviewed CLI command resolved for this
+                     resource, or the template with the placeholders still to
+                     be filled in.
+        Effort:      Low, Medium or High from the catalog.
         """
         from utils.RemediationCatalog import RemediationCatalog
 
         guidance = RemediationCatalog.get_guidance(service, check, detail)
-        lines = [' '.join(filter(None, (
-            self._asSentence(guidance['summary']),
-            self._asSentence(guidance['instruction']),
-        )))]
-
-        if guidance.get('context'):
-            lines.append(f"Why: {guidance['context']}")
-
-        impact = self._describeImpact(detail)
-        if impact:
-            lines.append(f'Fix impact: {impact}.')
+        lines = [guidance['remediation']]
 
         resource_remediation = (
             detail.get('__remediationByResource', {})
@@ -386,24 +401,12 @@ class ExcelBuilder:
             label = f'CLI ({risk} risk)' if risk else 'CLI'
             lines.append(f'{label}: {command}')
 
-        return '\n'.join(lines)
-
-    def _describeImpact(self, detail):
-        parts = []
-        for key, label in self._IMPACT_LABELS:
-            value = detail.get(key)
-            if value == 1:
-                parts.append(label)
-            elif value == -1:
-                parts.append(f'possible {label}')
-        return ', '.join(parts)
-
-    @staticmethod
-    def _asSentence(text):
-        text = ' '.join(str(text or '').split()).rstrip('.')
-        if not text:
-            return ''
-        return text[0].upper() + text[1:] + '.'
+        return {
+            'description': guidance['description'],
+            'impact': ', '.join(guidance['impact']),
+            'remediation': '\n'.join(lines),
+            'effort': guidance['effort'],
+        }
 
     def _getPillarName(self, category):
         mapped = {

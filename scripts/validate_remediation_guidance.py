@@ -1,10 +1,11 @@
 """Validate remediation-guidance coverage for reporter rules and framework mappings.
 
-Every reporter rule must yield a non-empty summary (the text that leads the
-``Notes`` column of ``waf-pillars.xlsx``). A specific instruction is optional;
-the script reports how many rules have one so regressions in catalog matching
-are visible. Every check referenced by a framework map must exist as a
-reporter rule.
+Every reporter rule must yield non-empty Description and Remediation text, an
+Effort of Low / Medium / High and, for pillar-mapped rules, at least one Impact
+tag (the columns of ``waf-pillars.xlsx``). A specific instruction is optional;
+the script reports how many rules have one, plus the effort and impact
+distributions, so regressions in catalog matching are visible. Every check
+referenced by a framework map must exist as a reporter rule.
 """
 
 import json
@@ -20,6 +21,7 @@ from utils.RemediationCatalog import RemediationCatalog
 
 SERVICES_DIR = ROOT / 'services'
 FRAMEWORKS_DIR = ROOT / 'frameworks'
+EFFORT_LEVELS = ('Low', 'Medium', 'High')
 
 
 def load_reporter_rules():
@@ -47,14 +49,27 @@ def main():
     rules = load_reporter_rules()
     guidance_errors = []
     families = Counter()
+    efforts = Counter()
+    impacts = Counter()
     with_context = 0
 
     for finding_key, detail in rules.items():
         service, check = finding_key.split('.', 1)
         guidance = RemediationCatalog.get_guidance(service, check, detail)
+        pillar_mapped = str(detail.get('category', ''))[:1] in 'OSRPC'
         if not guidance['summary']:
-            guidance_errors.append(finding_key)
+            guidance_errors.append(f'{finding_key}: empty summary')
+        if not guidance['description']:
+            guidance_errors.append(f'{finding_key}: empty description')
+        if not guidance['remediation']:
+            guidance_errors.append(f'{finding_key}: empty remediation')
+        if guidance['effort'] not in EFFORT_LEVELS:
+            guidance_errors.append(f'{finding_key}: effort {guidance["effort"]!r}')
+        if pillar_mapped and not guidance['impact']:
+            guidance_errors.append(f'{finding_key}: no impact tags')
         families[guidance['family']] += 1
+        efforts[guidance['effort']] += 1
+        impacts.update(guidance['impact'])
         if guidance['context']:
             with_context += 1
 
@@ -75,7 +90,7 @@ def main():
 
     if guidance_errors or framework_errors or stale_exact:
         if guidance_errors:
-            print('Rules without a remediation summary:')
+            print('Rules with incomplete workbook guidance:')
             print('\n'.join(sorted(guidance_errors)))
         if stale_exact:
             print('Exact guidance entries that match no reporter rule:')
@@ -92,6 +107,8 @@ def main():
         f'{with_context} with a why-line) and '
         f'{framework_references_seen} framework references.'
     )
+    print('Effort: ' + ', '.join(f'{level} {efforts[level]}' for level in EFFORT_LEVELS))
+    print('Impact tags: ' + ', '.join(f'{tag} {count}' for tag, count in impacts.most_common()))
     return 0
 
 

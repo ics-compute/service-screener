@@ -348,7 +348,7 @@
 		"additionalCost": 0,
 		"criticality": "I",
 		"needFullTest": 0,
-		"shortDesc": "EC2 with AMD chips",
+		"shortDesc": "EC2 with Graviton chips",
 		"ref": [
 			"[EC2 Linux Migrate to Graviton]<https://repost.aws/knowledge-center/ec2-linux-migrate-to-graviton>",
 			"[What is AWS Graviton]<https://docs.aws.amazon.com/whitepapers/latest/aws-graviton-performance-testing/what-is-aws-graviton.html>"
