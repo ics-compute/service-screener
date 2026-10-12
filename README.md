@@ -1,356 +1,342 @@
 # Service Screener
 
-An open source guidance tool for the AWS environment. Click [here](https://d3si63niga8mq9.cloudfront.net/961319563195/index.html) for sample report.
+An open source guidance tool for AWS environments. Click [here](https://d3si63niga8mq9.cloudfront.net/961319563195/index.html) for a sample report.
 
-***Important note***: *The generated report has to be hosted locally and MUST NOT be internet accessible*
-
-This version of Service Screener may not compatible with the Greater China region. Our community folks have made it work [here](https://github.com/lijh-aws-tools/service-screener-cn).
-
-## 🎉 NEW: Enhanced Beta Features (v2.5.0-beta)
-
-**Enable beta features with `--beta 1`!**
-
-### Latest Beta Features:
-- **🆕 AWS Cloudscape Design System UI**: Modern React-based interface
-  - Self-contained single HTML file (~2.7MB with embedded React and data)
-  - Enhanced GuardDuty reporting with interactive charts
-  - Cross-service findings aggregation with advanced filtering
-  - Interactive modernization recommendations (Sankey diagrams)
-  - Trusted Advisor integration with pillar-based organization
-  - Framework compliance reporting with visualizations
-  - Built on AWS Cloudscape Design System (designed for accessibility)
-  - Mobile responsive design
-
-- **🔧 API Buttons**: Interactive API call functionality in service pages
-
-### Standard Features (Always Enabled):
-- **⚡ Concurrent Mode**: Parallel check execution for better performance (use `--sequential` to disable)
-- **📊 Enhanced TA Data**: Advanced Trusted Advisor data generation
-- **🔍 Comprehensive Scanning**: All AWS services with Well-Architected best practices
-
-Enable beta features with: `--beta 1` (legacy AdminLTE remains default for backward compatibility)
+> **Important:** The generated report must be hosted locally and **MUST NOT** be internet accessible.
 
 ## Overview
-Service Screener is a tool that runs automated checks on AWS environments and provides recommendations based on AWS and community best practices.
 
-AWS customers can use this tool on their own environments and use the recommendations to improve the Security, Reliability, Operational Excellence, Performance Efficiency and Cost Optimisation at the service level.
+Service Screener runs automated checks on AWS environments and provides recommendations based on AWS and community best practices. Use it to improve Security, Reliability, Operational Excellence, Performance Efficiency, and Cost Optimisation at the service level — complementing the [AWS Well-Architected Tool](https://aws.amazon.com/well-architected-tool/).
 
-This tool aims to complement the [AWS Well Architected Tool](https://aws.amazon.com/well-architected-tool/).
+It makes read-only API calls (`describe`, `get`, `list`) plus briefly creates and auto-deletes an empty CloudFormation marker stack (`ssv2-xxxxxxxxxxxx`) for audit purposes.
 
-## How does it work?
-Service Screener uses [AWS CloudShell](https://aws.amazon.com/cloudshell/), a free service that provides a browser-based shell to run scripts using the AWS CLI. It runs multiple `describe` and `get` API calls to determine the configuration of your environment.
+---
 
-## How much does it cost?
-Running this tool is free as it is covered under the AWS Free Tier. If you have exceeded the free tier limits, each run will cost less than $0.01.
+## Getting Started
+
+There are two ways to use Service Screener depending on your workflow.
+
+---
+
+### Method 1 — Kiro AI Skill (recommended for AI-assisted workflows)
+
+Use this if you work inside [Kiro IDE](https://kiro.dev). The skill lets you describe scans in plain language — Kiro handles the command, runs the scan, and summarises the findings for you.
+
+**Skill layout**
+
+This repo *is* the skill: `SKILL.md` sits at the repo root, so a plain `git clone` into the skills folder is the whole install. The venv lives inside the clone. Nothing needs to live at your workspace root.
+
+```
+.kiro/skills/aws-svc-screener/    # git clone of this repo
+├── SKILL.md                      # skill definition
+├── main.py
+├── requirements.txt
+├── scripts/
+│   ├── setup.sh                  # one-time setup (Linux / macOS)
+│   └── setup.ps1                 # one-time setup (Windows)
+├── .venv/                        # created during install (gitignored)
+└── ...
+```
+
+Install it per workspace at `<workspace>/.kiro/skills/aws-svc-screener/`, or for every project at `~/.kiro/skills/aws-svc-screener/`.
+
+**Install (Linux / macOS)**
+
+```bash
+# from your workspace root (use ~/.kiro/skills/aws-svc-screener for a global install)
+git clone https://github.com/ics-compute/service-screener.git .kiro/skills/aws-svc-screener
+cd .kiro/skills/aws-svc-screener
+bash scripts/setup.sh
+```
+
+`setup.sh` creates `.venv/` in the skill root and installs `requirements.txt` into it. It's idempotent, so re-running it is safe. Or do it manually:
+
+```bash
+# run from the skill root, because requirements.txt ends with "-e ." which resolves against cwd
+python3 -m venv .venv
+.venv/bin/python -m pip install --upgrade pip
+.venv/bin/python -m pip install -r requirements.txt
+```
+
+**Install (Windows PowerShell)**
+
+```powershell
+# from your workspace root (use ~\.kiro\skills\aws-svc-screener for a global install)
+git clone https://github.com/ics-compute/service-screener.git .kiro\skills\aws-svc-screener
+cd .kiro\skills\aws-svc-screener
+powershell -ExecutionPolicy Bypass -File scripts\setup.ps1
+```
+
+Or manually, from the skill root:
+
+```powershell
+python -m venv .venv
+.venv\Scripts\python -m pip install --upgrade pip
+.venv\Scripts\python -m pip install -r requirements.txt
+```
+
+**Optional — Cloudscape UI** (only needed for `--beta 1` reports; Node `^20.19.0` or `>=22.12.0`):
+
+```bash
+cd .kiro/skills/aws-svc-screener/cloudscape-ui && npm ci && npm run build && cd -
+```
+
+**Activate**
+
+Start a new Kiro chat session (or reload the window). Kiro picks up `.kiro/skills/aws-svc-screener/SKILL.md` and registers the skill; no other configuration is needed. It then shows up as `/aws-svc-screener` when you type `/` in chat, and activates automatically when a request matches its description.
+
+**Update**
+
+```bash
+cd .kiro/skills/aws-svc-screener
+git pull
+```
+
+Re-run `bash scripts/setup.sh` (or `scripts\setup.ps1`) if `requirements.txt` changed, and rebuild `cloudscape-ui` if you use `--beta 1`. Local scan output (`.venv/`, `adminlte/aws/<account_id>/`, `output.zip`, `logs/`, `__fork/`, `crossAccounts.json`) is untracked and gitignored, so it doesn't block `git pull` and isn't touched by it.
+
+**Migrating from the old vendored layout**
+
+If `.kiro/skills/aws-svc-screener/` already exists as a plain copy with an `ics-ssc/` subfolder, move it *outside* `.kiro/skills/` first (so Kiro doesn't also load the old `SKILL.md`), then clone and set up as above:
+
+```bash
+mv .kiro/skills/aws-svc-screener ./aws-svc-screener.old
+# clone + bash scripts/setup.sh as above, then copy back any reports and config you want to keep:
+#   aws-svc-screener.old/ics-ssc/adminlte/aws/<account_id>/  ->  .kiro/skills/aws-svc-screener/adminlte/aws/
+#   aws-svc-screener.old/ics-ssc/crossAccounts.json          ->  .kiro/skills/aws-svc-screener/
+rm -rf ./aws-svc-screener.old
+```
+
+**Known limitation**
+
+The Lambda deprecated-runtime check is currently skipped in this layout (the botocore path in `constants.py` assumes a different venv location), so "Skipped runtime version check…" in the scan output is expected.
+
+**Use**
+
+Just describe the scan in Kiro — no flags needed:
+
+```
+/aws-svc-screener scan ap-southeast-1 with profile myprofile
+/aws-svc-screener check s3, ec2 and iam in us-east-1 using profile prod, beta UI
+/aws-svc-screener run a full scan of every region using profile prod
+```
+
+Kiro confirms the account and region before running anything, shows you the exact command, runs it, and summarises the findings.
+
+---
+
+### Method 2 — CLI with alias (shell / CloudShell)
+
+Use this for direct terminal usage, CI/CD pipelines, or AWS CloudShell.
+
+**Install**
+
+```bash
+# Clone and set up
+git clone https://github.com/ics-compute/service-screener.git ics-ssc
+cd ics-ssc
+
+# Create a venv (required on modern Debian/Ubuntu/Fedora — PEP 668)
+python3 -m venv .venv
+source .venv/bin/activate
+
+pip install --upgrade pip
+pip install -r requirements.txt
+
+# (Optional) Build the Cloudscape UI for --beta 1 reports
+# Requires Node ^20.19.0 or >=22.12.0
+cd cloudscape-ui && npm ci && npm run build && cd ..
+```
+
+**Alias the command** so you don't have to type the full path each time:
+
+```bash
+alias screener='python3 $(pwd)/main.py'
+```
+
+To make the alias permanent, add it to your `~/.bashrc` or `~/.zshrc`:
+
+```bash
+echo "alias screener='python3 /path/to/ics-ssc/main.py'" >> ~/.bashrc
+source ~/.bashrc
+```
+
+**Use**
+
+```bash
+# Singapore region, all services, new Cloudscape UI
+screener --regions ap-southeast-1 --beta 1
+
+# Singapore region, S3 only
+screener --regions ap-southeast-1 --services s3
+
+# Multiple regions
+screener --regions ap-southeast-1,us-east-1
+
+# All regions and services
+screener --regions ALL --profile myprofile
+
+# Tag-based filtering
+screener --regions ap-southeast-1 --tags env=prod%department=hr,coe
+
+# Without the alias, from inside ics-ssc/
+source .venv/bin/activate
+python3 main.py --regions ap-southeast-1 --profile myprofile
+```
+
+---
 
 ## Prerequisites
-1. Please review the [DISCLAIMER](./docs/DISCLAIMER.md) before proceeding.
-2. You must have an existing AWS Account.
-3. You must have an IAM User with sufficient read permissions. Here is a sample [policy](https://docs.aws.amazon.com/aws-managed-policy/latest/reference/ReadOnlyAccess.html). Additionally, the IAM User must also have the following permissions:
-   - AWSCloudShellFullAccess
-   - cloudformation:CreateStack
-   - cloudformation:DeleteStack
 
-4. (Optional) If you need to run cross-account operations, additional permissions are required:
-   - iam:SetSecurityTokenServicePreferences
+1. Review the [DISCLAIMER](./docs/DISCLAIMER.md) before proceeding.
+2. An existing AWS account.
+3. An IAM user/role with sufficient read permissions ([ReadOnlyAccess](https://docs.aws.amazon.com/aws-managed-policy/latest/reference/ReadOnlyAccess.html)) plus:
+   - `cloudformation:CreateStack` / `cloudformation:DeleteStack` (for the audit marker stack)
+   - `AWSCloudShellFullAccess` (if running from CloudShell)
+4. For cross-account scans: `iam:SetSecurityTokenServicePreferences` plus a deployed assume-role.
 
-### Why CloudFormation Permissions Are Required
+### Why CloudFormation permissions are required
 
-Service Screener creates a temporary, empty CloudFormation stack during each run for audit and compliance purposes. This stack:
+Service Screener creates a temporary, empty CloudFormation stack per run (`ssv2-xxxxxxxxxxxx`) for audit and compliance purposes. It contains no resources, incurs no cost, and is automatically deleted when the scan completes. The stack remains visible under "Deleted" stacks for audit trail purposes.
 
-- **Contains no actual resources** - It's an empty "marker" stack that incurs no cost
-- **Provides audit trail** - Creates a record in CloudFormation history of when Service Screener was executed
-- **Enables compliance tracking** - Allows organizations to track security assessment activities
-- **Supports partner integrations** - Enables tracking for AWS Partner evaluations (MPE)
+---
 
-The stack is automatically created at the start of each run with a unique name (format: `ssv2-xxxxxxxxxxxx`) and is automatically deleted when the assessment completes. The stack remains visible in CloudFormation history (when viewing "Deleted" stacks) for audit purposes. This approach leverages AWS's built-in audit capabilities without requiring additional logging infrastructure.
+## 🎉 Beta Features (v2.5.0-beta)
 
-## Installing service-screener V2
-1. [Log in to your AWS account](https://docs.aws.amazon.com/cloudshell/latest/userguide/getting-started.html#start-session) using the IAM User with sufficient permissions described above.
-2. Launch [AWS CloudShell](https://docs.aws.amazon.com/cloudshell/latest/userguide/getting-started.html#launch-region-shell) in any region.
-3. In the AWS CloudShell terminal, run this script to update python version to 3.13:
-  ``` bash
-   sudo yum install python3.13 -y
-   ```
-4. In the same CloudShell terminal, run this script to install the dependencies:
-   ``` bash
-   cd /tmp
-   git clone https://github.com/ics-compute/service-screener.git ics-ssc
-   cd ics-ssc
-   python3 -m venv .
-   source bin/activate
-   python3 -m pip install --upgrade pip
-   pip install -r requirements.txt
-   
-   # alias the screener
-   alias screener='python3 $(pwd)/main.py'
+Enable with `--beta 1`:
 
-   # or
-   python3 main.py --regions <e.g. ap-southeast-1> --profile <profile-name>
+- **AWS Cloudscape Design System UI** — Modern React-based interface (self-contained ~2.7 MB HTML file)
+- **GuardDuty** enhanced reporting with interactive charts
+- **Cross-service findings** aggregation with advanced filtering
+- **Interactive modernisation recommendations** (Sankey diagrams)
+- **Trusted Advisor** integration with pillar-based organisation
+- **Framework compliance** reporting with visualisations
+- **API Buttons** — interactive API call functionality in service pages
 
-   # Build Cloudscape UI (required for --beta 1 mode; package-lock.json is authoritative)
-   cd cloudscape-ui
-   npm ci
-   npm run build
-   cd ..
-   ```
+Standard features (always enabled): concurrent mode, enhanced TA data, full service coverage.
 
-   **Note:** AWS CloudShell comes with Node.js pre-installed. The Cloudscape UI build takes approximately 30-60 seconds.
+> Without `--beta 1`, `index.html` is the legacy AdminLTE report. In beta mode, AdminLTE is retained as `index-legacy.html` as a fallback.
 
-   **Important:** If you skip the Cloudscape UI build step, the `--beta 1` flag will still work but will only generate the legacy AdminLTE UI. To use the new Cloudscape UI features, you must complete the build step above.
+---
 
-## Using Service Screener
-When running Service Screener, you will need to specify the regions and services you would like it to run on. For the full list of services currently supported, please see "SERVICES_IDENTIFIER_MAPPING" in [Config.py](./utils/Config.py).
+## Usage Examples
 
-We recommend running it in all regions where you have workloads deployed in. Adjust the commands below to suit your needs then copy and paste it into CloudShell to run Service Screener.
+All examples below use the `screener` alias (Method 2) or are equivalent to what Kiro runs under the hood (Method 1).
 
-**Example 1: (Recommended) Run in the Singapore region, check all services with NEW Cloudscape UI enabled**
-``` bash
+**Recommended: Singapore region, all services, Cloudscape UI**
+```bash
 screener --regions ap-southeast-1 --beta 1
 ```
 
-**Example 1a: Run in the Singapore region, check all services with legacy AdminLTE UI**
-``` bash
+**Legacy AdminLTE UI**
+```bash
 screener --regions ap-southeast-1
 ```
 
-**Example 2: Run in the Singapore region, check only Amazon S3**
-``` bash
-screener --regions ap-southeast-1 --services s3
-```
-
-**Example 3: Run in the Singapore & North Virginia regions, check all services**
-``` bash
-screener --regions ap-southeast-1,us-east-1
-```
-
-**Example 4: Run in the Singapore & North Virginia regions, check RDS and IAM**
-``` bash
+**Multiple regions, specific services**
+```bash
 screener --regions ap-southeast-1,us-east-1 --services rds,iam
 ```
 
-**Example 5: Run in the Singapore region, filter resources based on tags (e.g: Name=env Values=prod and Name=department Values=hr,coe)**
-``` bash
+**All regions**
+```bash
+screener --regions ALL --profile myprofile
+```
+
+**Tag filtering** (env=prod AND (department=hr OR department=coe))
+```bash
 screener --regions ap-southeast-1 --tags env=prod%department=hr,coe
 ```
 
-**Example 6: Run in all regions and all services**
-``` bash
-screener --regions ALL
-```
-
-**Example 7: Run with suppression file to ignore specific findings**
-``` bash
+**With suppression file**
+```bash
 screener --regions us-east-1 --services s3 --suppress_file ./suppressions.json
 ```
 
-## Performance Options
-
-### Disable Custom Pages
-For faster scans focused on core AWS service analysis, you can disable custom pages processing:
-
-``` bash
-screener --regions ap-southeast-1 --services ec2,s3,rds --disable-custom-pages 1
+**Fast scan** — skip TA/COH/aggregation (~2–3 min faster)
+```bash
+screener --regions ap-southeast-1 --services ec2,iam,s3 --disable-custom-pages 1
 ```
 
-This skips processing of:
-- **Cost Optimization Hub (COH)** - AWS cost optimization recommendations
-- **Trusted Advisor (TA)** - TA check results and pillar organization
-- **Findings aggregation** - Cross-service findings analysis
-- **Modernize recommendations** - Modernization pathway analysis
-
-**Performance benefits:**
-- **Time savings:** ~2-3 minutes per scan
-- **Faster execution:** Focuses only on core service security checks
-- **Reduced API calls:** Skips COH, TA, and aggregation APIs
-
-**Use cases:**
-- CI/CD pipeline integration where speed is critical
-- Quick security validation checks
-- Development and testing environments
-- Core service analysis without additional insights
-
-**Example: Fast security scan**
-``` bash
-screener --regions us-east-1 --services ec2,iam,s3 --disable-custom-pages 1 --beta 1
-```
-
-## Other parameters
-
-### Suppression File
-To suppress specific findings, create a JSON file with the suppressions and use the `--suppress-file` parameter:
-
-```json
-{
- "metadata": {
-   "version": "1.0",
-   "description": "Your suppression description"
- },
- "suppressions": [
-   {
-     "service": "s3",
-     "rule": "BucketReplication"
-   },
-   {
-     "service": "s3",
-     "rule": "BucketVersioning",
-     "resource_id": ["Bucket::my-bucket-name"]
-   }
- ]
-}
-```
-
-For more details, see the [suppressions documentation](./docs/Suppressions.md).
-
-### Migration Evaluation ID
-For AWS Partners conducting migration evaluations:
-```json
-{
-    "mpe": {
-        "id": "aaaa-1111-cccc"
-    }
-}
-```
-
-Usage:
-
-``` bash
-screener --regions ap-southeast-1 --others '{"mpe": {"id": "aaaa-1111-cccc"}}'
-```
-
-### Well-Architected Tool Integration
-To create a workload and milestone in the Well-Architected Tool:
-``` json
-{
-    "WA": {
-        "region": "ap-southeast-1",
-        "reportName": "SS_Report",
-        "newMileStone": 1
-    }
-}
-```
-
-Parameters:
-
-- `region`: The region where the Well-Architected workload will be created
-- `reportName`: Name of the workload (use existing name to update)
-- `newMileStone`:
-   - Set to 1 to create a new milestone each time (Recommended)
-   - Set to 0 to create a milestone only if none exists
-
-Usage:
-
-``` bash
+**Well-Architected Tool integration**
+```bash
 screener --regions ap-southeast-1 --beta 1 --others '{"WA": {"region": "ap-southeast-1", "reportName": "SS_Report", "newMileStone": 1}}'
 ```
 
-### Combining Parameters
-You can combine both MPE and WA parameters:
+**Migration Evaluation ID (AWS Partners)**
+```bash
+screener --regions ap-southeast-1 --others '{"mpe": {"id": "aaaa-1111-cccc"}}'
+```
 
-``` json
+---
+
+## Where the output goes
+
+| File | Location | What it is |
+|---|---|---|
+| `output.zip` | `output.zip` | Full report archive; overwritten on every run |
+| `index.html` | `adminlte/aws/<account_id>/index.html` | Interactive HTML report |
+| `api-full.json` | same folder | Structured findings (FAIL/WARN only) — machine-readable |
+| `api-raw.json` | same folder | Raw per-check results |
+| `waf-pillars.xlsx` | same folder | Findings per Well-Architected pillar, filterable by Severity/Impact/Effort |
+| `workItem.xlsx`, `all.csv` | same folder | Flat worklist / CSV export |
+
+Paths are relative to the tool root. For the Kiro skill install (Method 1) that's `.kiro/skills/aws-svc-screener/` itself; for Method 2 it's the cloned `ics-ssc/` folder.
+
+To download from CloudShell: Actions → *Download file*, then open `index.html` locally.
+
+---
+
+## Suppression File
+
+```json
 {
-    "WA": {
-        "region": "ap-southeast-1",
-        "reportName": "SS_Report",
-        "newMileStone": 1
-    },
-    "mpe": {
-        "id": "aaaa-1111-cccc"
-    }
+  "metadata": { "version": "1.0", "description": "Your suppression description" },
+  "suppressions": [
+    { "service": "s3", "rule": "BucketReplication" },
+    { "service": "s3", "rule": "BucketVersioning", "resource_id": ["Bucket::my-bucket-name"] }
+  ]
 }
 ```
 
-Usage:
+See the [suppressions documentation](./docs/Suppressions.md) for details.
 
-``` bash
-screener --regions ap-southeast-1 --others '{"WA": {"region": "ap-southeast-1", "reportName": "SS_Report", "newMileStone": 1}, "mpe": {"id": "aaaa-1111-cccc"}}'
-```
+---
 
-## Downloading the report
-The output is generated as a ~/service-screener-v2/output.zip file.
-You can [download the file](https://docs.aws.amazon.com/cloudshell/latest/userguide/working-with-cloudshell.html#files-storage) in the CloudShell console by clicking the *Download file* button under the *Actions* menu on the top right of the CloudShell console.
+## Cross-Account Scans
 
-Once downloaded, unzip the file and open 'index.html' in your browser. You should see a page like [this](https://dev.d11el1twchxpia.amplifyapp.com/961319563195/index.html).
+1. Deploy `usecases/crossAccounts/crossAccountRoleCF.yml` as a StackSet across target accounts.
+2. Create `crossAccounts.json` from `crossAccounts.sample.json`.
+3. Run with `--crossAccounts 1`.
 
-The new Cloudscape UI (enabled with `--beta 1`) includes:
-- **GuardDuty Special Handling** - Dedicated charts, settings, and grouped findings
-- **Cross-Service Findings** - Aggregated findings across all services with advanced filtering
-- **Modernization Recommendations** - Interactive Sankey diagrams showing modernization pathways
-- **Trusted Advisor Integration** - TA check results with pillar-based organization
+---
 
-Ensure that you can see the service(s) run on listed on the left pane.
-You can navigate to the service(s) listed to see detailed findings on each service.
+## Service Screener v2 migration notes
 
+`ics-ssc` includes the full v2 feature set. Notable additions:
 
-## Using the report
-The report provides you an easy-to-navigate dashboard of the various best-practice checks that were run.
+- **45 services** covered (26 new: Access Analyzer, ACM, AppSync, Athena, Backup, Bedrock, CloudFormation, CodeBuild, Cognito, Config, ECR, ECS, EMR, EventBridge, Firehose, Glue, Inspector, Kinesis, Route 53, SageMaker, Secrets Manager, Security Hub, SNS, SSM, Step Functions, WAFv2).
+- **`api-full.json`** with per-service stats, framework data, suppression metadata, remediation resolution.
+- **`waf-pillars.xlsx`** with Well-Architected pillar sheets and `RemediationCatalog.py` guidance for 1,039 rules.
+- **Cloudscape UI** (`cloudscape-ui/`) — React single-file report; build once with `npm ci && npm run build`.
+- **MCP server** at `usecases/mcp/` for querying cached scan results from any MCP-aware client.
+- **`--disable-custom-pages 1`** skips TA/COH/aggregation for faster scans.
+- **`--sequential 1`** disables concurrency (useful for debugging).
+- Node `^20.19.0` or `>=22.12.0` required for the Cloudscape build; `package-lock.json` is authoritative — use `npm ci`.
 
-Use the left navigation bar to explore the checks for each service. Expand each check to read the description, find out which resources were highlighted, and get recommendations on how to remediate the findings.
+---
 
-Besides the HTML report, you can also find two JSON files that record the findings in each AWS account's folder:
+## Contributing
 
-- `api-raw.json`: Contains the raw findings
-- `api-full.json`: Contains the full results in JSON format
-
-## Contributing to service-screener
-We encourage public contributions! Please review [CONTRIBUTING](./CONTRIBUTING.md) for details on our code of conduct and development process.
+See [CONTRIBUTING](./CONTRIBUTING.md) for our code of conduct and development process.
 
 ## Development Guide
-A comprehensive development guide is available at [Development Guide](./docs/DevelopmentGuide.md).
 
-## Contact
-Please review [CONTRIBUTING](./CONTRIBUTING.md) to raise any issues.
+See the [Development Guide](./docs/DevelopmentGuide.md).
 
 ## Security
-See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
+
+See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications).
 
 ## License
-This project is licensed under the Apache-2.0 License.
 
-## Service Screener v2 migration
-
-This `ics-ssc` repository now includes the applicable Service Screener v2 feature set while retaining the legacy root utilities (`CreateService.py`, `RuleCount.py`, `DocLinkValidity.py`, `organizationAccountsInit.py`, `unzip_botocore_lambda_runtime.py`) and legacy AdminLTE assets as compatibility paths.
-
-### What was introduced
-
-- **Expanded scanner coverage and rule metadata:** the default scan now covers 45 services. The 26 added service bundles are Access Analyzer, ACM, AppSync, Athena, Backup, Bedrock, CloudFormation, CodeBuild, Cognito, Config, ECR, ECS, EMR, EventBridge, Firehose, Glue, Inspector, Kinesis, Route 53, SageMaker, Secrets Manager, Security Hub, SNS, SSM, Step Functions, and WAFv2. Each bundle includes its service class, drivers, reporter rules, and simulation materials; existing services received the corresponding v2 rule and driver updates.
-- **Richer report contract and remediation:** `utils/OutputGenerator.py` now produces the legacy report plus `api-full.json` with per-service statistics, framework data, suppression metadata, structured GuardDuty findings, and per-resource remediation resolution (`__remediationByResource`). Reporter rule records carry remediation, risk, and documentation metadata where available.
-- **WAF pillars workbook:** `waf-pillars.xlsx` contains only the five Well-Architected pillars; non-pillar `T` findings are excluded. `utils/RemediationCatalog.py` provides concise, finding-specific manual remediation guidance for all 1,039 reporter rules, while only existing reviewed commands are shown as executable. Each row carries four plain-text columns: **Description** (the finding's `shortDesc` plus the consequence taken from the reporter description when it adds information), **Impact** (comma-separated tags: the pillars the reporter assigns, such as Security, Availability, Performance, Additional cost or Operations; Data loss and Compliance when the finding is about backups or a named standard; and the reporter's downtime/slowness/cost/testing flags as Downtime, Performance, Additional cost and Requires testing, prefixed with "Possible" when the reporter says it depends), **Remediation** (the catalog hint, or the `shortDesc` when there is none, followed by the resolved CLI command with its `remediation_risk` when a reviewed template exists) and **Effort** (Low, Medium or High: a base for the kind of change, raised when the reporter flags downtime, slowness or a full test; the cell has a dropdown so operators can adjust it). Every pillar sheet has a frozen header row with an autofilter, so rows can be filtered by Severity, Impact or Effort.
-- **Structured custom-page data:** findings, modernization, Trusted Advisor, and Cost Optimization Hub (COH) data are exposed as `customPage_findings`, `customPage_modernize`, `customPage_ta`, and `customPage_coh`. TA/COH collection is coordinated once per scan and cached under `.cache/`; use `--disable-custom-pages 1` when the additional data is not required.
-- **Cloudscape UI:** `cloudscape-ui/` supplies the locked React/Cloudscape single-file report build, including dashboards, risk and service details, GuardDuty views, frameworks, custom pages, suppressions, remediation presentation, and accessibility/error handling. The legacy AdminLTE report is always generated first.
-- **Framework and quality additions:** refreshed framework mappings plus AAIL (Agentic AI Lens) and IRDAI directories are included. `scripts/validate_frameworks.py` and `.github/workflows/validate-frameworks.yml` prevent framework maps from silently referring to nonexistent checks; reporter validation was also updated.
-- **Content enrichment and MCP:** beta reports can enrich the offline report with AWS best-practice content. `usecases/mcp/` adds the standalone stdio MCP server for rules, findings, scan management, and Well-Architected-pillar queries; install its separate `mcp_server/requirements.txt` in the MCP environment.
-- **Operational controls:** scans run concurrently by default. `--sequential 1` disables both service- and evaluator-level concurrency; runs write timestamped logs under `logs/` and record checks taking at least three seconds in the account report's `slow_checks.log`. `--services ALL` selects the complete default service set.
-
-### Prerequisites and network behavior
-
-- Use the existing Python environment and `pip install -r requirements.txt`. The legacy `boto3[crt]` extra is intentionally retained alongside the v2 Python dependencies.
-- To build Cloudscape, use **Node `^20.19.0` or `>=22.12.0`**; `cloudscape-ui/.nvmrc` pins `22.12.0`. The committed `cloudscape-ui/package-lock.json` is authoritative, so use `npm ci` rather than an unconstrained install.
-- IAM must allow the selected services' read/list/describe/get APIs and `sts:GetCallerIdentity`. The normal marker-stack behavior additionally needs CloudFormation create/delete permissions; cross-account scans need the relevant assume-role permissions and `iam:SetSecurityTokenServicePreferences`. Optional TA and COH pages need access to their corresponding AWS advisory and cost-optimization APIs. Least-privilege policies should be scoped to the services and regions being scanned.
-- `--beta 1` enables Cloudscape and content enrichment. Content enrichment makes outbound HTTPS requests to retrieve public AWS guidance; allow outbound HTTPS if it is desired. If enrichment is unavailable or fails, empty enrichment data is embedded and scanning/report generation continues. Keep generated reports local and never expose them on the internet.
-
-### Commands and fallback behavior
-
-```bash
-# One-time, deterministic Cloudscape build (requires the Node version above)
-cd cloudscape-ui
-npm ci
-npm run build
-cd ..
-
-# Legacy AdminLTE report (default), all v2 services in one region
-python3 main.py --regions ap-southeast-1 --services ALL
-
-# Beta Cloudscape report with embedded report data and content enrichment
-python3 main.py --regions ap-southeast-1 --services ALL --beta 1
-
-# Compatibility/performance controls
-python3 main.py --regions ap-southeast-1 --sequential 1
-python3 main.py --regions ap-southeast-1 --disable-custom-pages 1
-
-# Offline metadata validation
-python3 scripts/validate_reporter.py
-python3 scripts/validate_frameworks.py
-```
-
-Without `--beta 1`, `index.html` remains the AdminLTE report. In beta mode AdminLTE is retained as `index-legacy.html`; if Cloudscape cannot build or its data cannot be embedded, Service Screener restores that AdminLTE report as `index.html` and completes with the legacy output instead of failing the scan.
+Apache-2.0. See [LICENSE](./LICENSE).

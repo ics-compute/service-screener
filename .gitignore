@@ -48,6 +48,7 @@ AWSCLIV2.pkg
 
 # Unit test / coverage reports
 htmlcov/
+.agents/*
 .tox/
 .nox/
 .coverage
@@ -86,3 +87,8 @@ venv.bak/
 
 # Additional ignores
 __fork/
+
+# Per-account scan output (utils/Config.py writes to adminlte/aws/<12-digit account id>/).
+# Digit-only patterns never match the tracked static assets in adminlte/aws/res/.
+/adminlte/aws/[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]/
+/adminlte/aws/res/[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]/
