@@ -292,7 +292,7 @@ for file in os.listdir(_C.ADMINLTE_DIR):
         shutil.rmtree(_C.ADMINLTE_DIR + '/' + file)
 
 acctLoop = 0
-CfnTrailObj = CfnTrail()
+CfnTrailObjs = []
 
 for acctId, cred in rolesCred.items():
     acctLoop = acctLoop + 1
@@ -412,8 +412,10 @@ for acctId, cred in rolesCred.items():
         cfnAdditionalStr = None
         if mpeid is not None:
             cfnAdditionalStr = " --mpeid:{}".format(mpeid)
+        CfnTrailObj = CfnTrail()
         CfnTrailObj.boto3init(cfnAdditionalStr)
         CfnTrailObj.createStack()
+        CfnTrailObjs.append(CfnTrailObj)
 
     overallTimeStart = time.time()
     # os.chdir('__fork')
@@ -570,6 +572,14 @@ for acctId, cred in rolesCred.items():
 
 adminlteDir = _C.ADMINLTE_ROOT_DIR
 shutil.make_archive('output', 'zip', adminlteDir)
+
+cleanupFailed = False
+for CfnTrailObj in CfnTrailObjs:
+    if not CfnTrailObj.deleteStack():
+        cleanupFailed = True
+
+if cleanupFailed:
+    sys.exit("Service Screener output was generated, but one or more marker CloudFormation stacks could not be deleted.")
 
 print("Pages generated, download \033[1;42moutput.zip\033[0m to view")
 print("CloudShell user, you may use this path: \033[1;42m =====> \033[0m /tmp/service-screener-v2/output.zip \033[1;42m <===== \033[0m")

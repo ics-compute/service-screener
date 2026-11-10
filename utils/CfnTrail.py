@@ -1,3 +1,5 @@
+import atexit
+import os
 import uuid
 import sys
 
@@ -13,6 +15,9 @@ class CfnTrail():
     additionalDesc = None
     def __init__(self):
         self.stackName = None
+        self.stackCreated = False
+        self.ownerPid = os.getpid()
+        self.cleanupRegistered = False
         self.cfnTemplate = "zNullResourcesCfn.yml"
         self.stackPrefix = "ssv2-"
         self.defaultRegion = "us-east-1"
@@ -56,29 +61,47 @@ Outputs:
                 StackName=self.getStackName(),
                 TemplateBody=yml
             )
-            msg = "Empty CF stacked created successfully, name:" + self.getStackName()
+            self.stackCreated = True
+            # The main process also cleans up explicitly after generating output.
+            # This fallback covers errors and early exits without running in forked workers.
+            if not self.cleanupRegistered:
+                atexit.register(self.deleteStack)
+                self.cleanupRegistered = True
+            msg = "Empty CF stack created successfully, name:" + self.getStackName()
             _info(msg, alwaysPrint=True)
-        
+
         except botocore.exceptions.ClientError as e:
             ecode = e.response['Error']['Code']
             emsg = e.response['Error']['Message']
             print(ecode, emsg)
             print("----")
             sys.exit("Please grant cloudformation:CreateStack permission to the user and retry")
-    
+
     def deleteStack(self):
+        # Forked scanner workers inherit atexit callbacks. Only the process that
+        # created this stack is authorized to perform its cleanup.
+        if not self.stackCreated or os.getpid() != self.ownerPid:
+            return True
+
+        stackName = self.getStackName()
         try:
-            self.cfClient.delete_stack(
-                StackName=self.getStackName()    
+            self.cfClient.delete_stack(StackName=stackName)
+            self.cfClient.get_waiter('stack_delete_complete').wait(
+                StackName=stackName,
+                WaiterConfig={'Delay': 2, 'MaxAttempts': 60}
             )
-            
-            msg = "Empty CF stacked deleted successfully, name:" + self.getStackName()
-            _info(msg, alwaysPrint=True)
+            self.stackCreated = False
+            _info("Empty CF stack deleted successfully, name:" + stackName, alwaysPrint=True)
+            return True
         except botocore.exceptions.ClientError as e:
             ecode = e.response['Error']['Code']
             emsg = e.response['Error']['Message']
             print(ecode, emsg)
-            print("Unable to delete CF stack. Although no cost will be incur, recommend to clean up the stack for hygiene purposes")
+        except botocore.exceptions.WaiterError as e:
+            print("CloudFormation stack deletion did not complete: " + str(e))
+
+        print("Unable to delete CF stack. Clean up the stack manually and verify cloudformation:DeleteStack permission.")
+        return False
     
     def getStackName(self):
         if self.stackName == None:
